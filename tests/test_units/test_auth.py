@@ -1,2 +1,2 @@
-def test_test():
+def test_unit_tests_discovered():
     assert True

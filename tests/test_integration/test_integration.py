@@ -1,5 +1,5 @@
 import pytest
 
 
-def test_integration_discovered():
+def test_integration_tests_discovered():
     assert True
