@@ -1,4 +1,8 @@
+[![Build Status](https://travis-ci.org/omarryhan/Pyfy.svg?branch=master)](https://travis-ci.org/omarryhan/Pyfy)
 # Under development
+
+### Setup
+`$ pip install pyfy`
 
 ### Testing
 

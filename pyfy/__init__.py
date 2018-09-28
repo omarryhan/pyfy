@@ -1,15 +1,14 @@
 import os
 import sys
 import json
-import time
+import datetime
 import logging
 import secrets
 from urllib import parse
 
-
 from requests import Request, Session
 
-__name__ = 'Pyfy'
+__name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
 __url__ = 'https://github.com/omarryhan/spyfy'
 __version_info__ = ('0', '0', '1')

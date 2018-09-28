@@ -1,6 +1,8 @@
 import setuptools
 import os
 
+from twine import repository
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 join = os.path.join
 
@@ -18,7 +20,7 @@ install_requires = requirements
 tests_require = test_requirements
 
 setuptools.setup(
-    name="pyfi",
+    name="pyfy",
     version="0.0.1",
     author="Omar Ryhan",
     author_email="omarryhan@gmail.com",
