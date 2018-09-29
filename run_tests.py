@@ -16,10 +16,11 @@ def main():
     client_id = os.getenv('SPOTIFY_CLIENT_ID')
     client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
     access_token = os.getenv('SPOTIFY_ACCESS_TOKEN')
-    id_ = os.getenv('SPOTIFY_ID')
+    id_ = os.getenv('SPOTIFY_USER_ID')
+    redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
     integration_test = os.getenv('PYFY_INTEGRATION_TEST')
 
-    if client_id and client_secret and access_token and id_ and integration_test == 'true':  # Run unit tests then integration tests
+    if client_id and client_secret and access_token and id_ and redirect_uri and integration_test == 'true':  # Run unit tests then integration tests
         print('Running unit tests followed by integration tests')
         pytest.main(['-vs', '--no-print-logs', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/'])
     else:

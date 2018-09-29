@@ -1,0 +1,10 @@
+include requirements.txt
+include test_requirements.txt
+graft tests/
+graft pyfy/
+include README.md
+include run_tests.py
+include spt_keys_template.py
+include tox.ini
+global-exclude *.pyc
+exclude spt_keys.py 

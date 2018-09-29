@@ -16,8 +16,9 @@ For integration testing (testing against the real API):
     1. `SPOTIFY_CLIENT_ID` Create an app from [here](https://developer.spotify.com/dashboard/applications)
     2. `SPOTIFY_CLIENT_SECRET` Create an app from [here](https://developer.spotify.com/dashboard/applications)
     3. `SPOTIFY_ACCESS_TOKEN` Get a Spotify token from [here](https://beta.developer.spotify.com/console/get-current-user/)  ****Check all scopes**
-    4. `SPOTIFY_ID` Get your Spotify ID from [here](https://www.spotify.com/account/overview/) 
-    5. `PYFY_INTEGRATION_TEST` = true
+    4. `SPOTIFY_REDIRECT_URI` = 'http://localhost'
+    5. `SPOTIFY_ID` Get your Spotify ID from [here](https://www.spotify.com/account/overview/) 
+    6. `PYFY_INTEGRATION_TEST` = true
 
 3. Run `$tox`
 
