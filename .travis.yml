@@ -3,6 +3,9 @@ language: python
 python:
   - 3.6
 install:
-  pip install tox-travis
+  #pip install tox-travis
+  pip install -r requirements.txt
+  pip install -r test_requirements.txt
 script: 
-  tox
+  #tox
+  python run_tests.py
