@@ -1,9 +1,4 @@
-import pytest
-import webbrowser
-
 import requests
-
-from pyfy import ClientCredentials, UserCredentials
 
 
 def test_integration_tests_discovered():

@@ -1,15 +1,19 @@
 import os
 import sys
 import json
+import socket
 import base64
+import pickle
 import secrets
 import logging
 import datetime
 from time import sleep
 from urllib import parse
 
+
 from requests import Request, Session
 from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
+from requests.adapters import HTTPAdapter
 
 __name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
@@ -32,6 +36,8 @@ __all__ = [
 
 BACKING_OFF_INCREMENT = 0.4  # seconds
 BACKING_OFF_EXPONENT = 1.2
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+HOST_NAME = socket.gethostname()
 BASE_URI = 'https://api.spotify.com/v1/'
 OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 OAUTH_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
@@ -50,7 +56,7 @@ ALL_SCOPES = [
     'user-read-private',  # Users
     'user-read-birthdate',
     'user-read-email',
-    'user-library-read',  #  Library
+    'user-library-read',  # Library
     'user-library-modify',
     'user-top-read',  # Listening History
     'user-read-recently-played'
@@ -59,7 +65,6 @@ ALL_SCOPES = [
 logger = logging.getLogger(__name__)
 
 
-# TODO: Set session params upon authenticating
 # TODO: Implement cache https://developer.spotify.com/documentation/web-api/#conditional-requests
 
 
@@ -92,14 +97,25 @@ class _Creds:
     def __init__(self, *args, **kwargs):
         raise TypeError('_Creds class isn\'nt calleable')
 
-    def load_from_file(self, path):
-        pass
+    def save_to_file(self, path=CURRENT_DIR, name=None):
+        if name is None:
+            name = HOST_NAME + "_" + "Spotify_" + self.__class__.__name__
+        path = os.path.join(path, name)
+        with open(path, 'wb') as creds_file:
+            pickle.dump(self, creds_file, pickle.HIGHEST_PROTOCOL)
 
-    def save_to_file(self, path):
-        pass
+    def load_from_file(self, path=CURRENT_DIR, name=None):
+        if name is None:
+            name = HOST_NAME + "_" + "Spotify_" + self.__class__.__name__
+        path = os.path.join(path, name)
+        with open(path, 'rb') as creds_file:
+            self = pickle.load(creds_file)
 
-    def _create_secret(self, bytes_length=32):
-        return secrets.base64.standard_b64encode(secrets.token_bytes(bytes_length)).decode('utf-8')
+    def _delete_pickle(self, path=CURRENT_DIR, name=None):
+        if name is None:
+            name = HOST_NAME + "_" + "Spotify_" + self.__class__.__name__
+        path = os.path.join(path, name)
+        os.remove(path)
 
     @property
     def access_is_expired(self):
@@ -152,9 +168,13 @@ class UserCredentials(_Creds):
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']
         self.user_id = os.environ['SPOTIFY_USER_ID']
 
+    @staticmethod
+    def _create_secret(bytes_length=32):
+        return secrets.base64.standard_b64encode(secrets.token_bytes(bytes_length)).decode('utf-8')
+
 
 class Client:
-    def __init__(self, client_creds=None, user_creds=None, ensure_user_auth=False, proxies={}, timeout=4, max_retries=10, default_limit=100, check_for_state=True):
+    def __init__(self, client_creds=None, user_creds=None, ensure_user_auth=False, proxies={}, timeout=4, max_retries=10, default_limit=100, check_state=True):
         # Two main credentials model
         self.client_creds = client_creds
         if user_creds is None:
@@ -163,13 +183,13 @@ class Client:
             self._user_creds = user_creds
 
         # Requests defaults
-        self._session = Session()  # Using session for better performance (connection pooling) and setting standard request properties with ease
+        self._session = self._create_session(max_retries)  # Using session for better performance (connection pooling) and setting standard request properties with ease
         self.proxies = proxies  # http://docs.python-requests.org/en/master/user/advanced/#proxies & http://docs.python-requests.org/en/master/user/advanced/#socks
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.check_for_state = check_for_state
+        self.timeout = timeout  # Seconds before request raises a timeout error
+        self.max_retries = max_retries  # Max retries when an HTTP error occurs
 
         # Api defaults
+        self.check_state = check_state  # Check for a cookie-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks, though not necessary.
         self.default_limit = default_limit  # Resource get limit
 
         # You shouldn't need to manually change this flag.
@@ -181,6 +201,13 @@ class Client:
         if user_creds and client_creds and ensure_user_auth:  # Attempt user authorization upon client instantiation
             self._caller = self._user_creds
             self._check_authorization()
+
+    def _create_session(self, max_retries):
+        sess = Session()
+        http_adapter = HTTPAdapter(max_retries=max_retries)
+        sess.mount('http://', http_adapter)
+        sess.mount('https://', http_adapter)
+        return sess
 
     def _check_authorization(self):
         ''' checks whether the credentials provided are valid or not by making and api call that requires no scope but still requires authorization '''
@@ -278,7 +305,7 @@ class Client:
                 'redirect_uri': self.client_creds.redirect_uri,
                 'scopes': ' '.join(self.client_creds.scopes),
             }
-            if self.check_for_state and self.user_creds.state:
+            if self.check_state and self.user_creds.state:
                 params.update({'state': self.user_creds.state})
             params = parse.urlencode(params)
             return f'{OAUTH_AUTHORIZE_URL}?{params}'
