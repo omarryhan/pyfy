@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
-from pyfy import ClientCredentials, UserCredentials
+
+from pyfy import ClientCredentials, UserCredentials, _Creds
 
 
 def test_creds_loaded_from_env(user_creds_from_env, client_creds_from_env):
@@ -46,3 +49,15 @@ def test_user_model_loaded_from_pickle_to_default_path(user_creds_from_env):
     user_creds_from_env.save_to_file()
     user_creds_from_env.load_from_file()    
     user_creds_from_env._delete_pickle()
+
+
+def test_creds_isnot_instantiable():
+    with pytest.raises(TypeError) as e:
+        _Creds()
+
+
+def access_is_expired(user_creds_from_env):
+    user_creds_from_env.expiry = datetime.datetime.now()
+    assert user_creds_from_env.access_is_expired is True
+    user_creds_from_env.expiry = datetime.datetime.now() + datetime.timedelta(minutes=2)
+    assert user_creds_from_env.access_is_expired is False
