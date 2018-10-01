@@ -23,10 +23,10 @@ def run():
 
     if client_id and client_secret and access_token and id_ and redirect_uri and test_integration == 'true':  # Run unit tests then integration tests
         print('Running unit tests followed by integration tests')
-        pytest.main(['-vvs', '--no-print-logs', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/'])
+        pytest.main(['-vv', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/'])
     else:
         print('Running unit tests')
-        pytest.main(['-vvs', '--no-print-logs', '--cov', 'pyfy/', 'tests/test_units/'])
+        pytest.main(['-vv', '-s', '--cov', 'pyfy/', 'tests/test_units/'])
 
 
 if __name__ == '__main__':

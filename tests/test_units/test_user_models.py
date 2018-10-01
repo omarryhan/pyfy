@@ -35,11 +35,6 @@ def test_client_is_not_oauth_ready_without_redirect_uri(client_creds_from_env):
     assert not client_creds_from_env.is_oauth_ready  # assert not ready when there's no redirect uri
 
 
-def test_list_type_scopes_is_asserted():
-    with pytest.raises(TypeError) as e:
-        UserCredentials(scopes='a list')
-
-
 def test_user_model_pickled_to_default_path(user_creds_from_env):
     user_creds_from_env.save_to_file()
     user_creds_from_env._delete_pickle()
@@ -51,7 +46,7 @@ def test_user_model_loaded_from_pickle_to_default_path(user_creds_from_env):
     user_creds_from_env._delete_pickle()
 
 
-def test_creds_isnot_instantiable():
+def test_creds_is_not_instantiable():
     with pytest.raises(TypeError) as e:
         _Creds()
 

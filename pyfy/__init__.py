@@ -7,9 +7,11 @@ import pprint
 import pickle
 import secrets
 import logging
+import warnings
 import datetime
 from time import sleep
 from urllib import parse
+from functools import wraps
 
 from requests import Request, Session, Response
 from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
@@ -34,7 +36,7 @@ __all__ = [
     'Client'
 ]
 
-_DEBUG = False
+_DEBUG = False  # If true, client will pretty print every request and response
 BACKOFF_INCREMENT = 0.4  # seconds
 BACKOFF_EXPONENT = 1.2
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -65,40 +67,46 @@ ALL_SCOPES = [
 
 
 logger = logging.getLogger(__name__)
+if _DEBUG:
+    logger.setLevel(logging.DEBUG)
 
 
 # TODO: Implement cache https://developer.spotify.com/documentation/web-api/#conditional-requests
 # TODO: Check client._caller flow
-# TODO: Test refresh tokens
+# TODO: Test user refresh tokens
+# TODO: Test client always raises error if not http 2**
 
 
 class SpotifyError(Exception):
     ''' RFC errors https://tools.ietf.org/html/rfc6749#section-5.2 '''
-    def _build_super_msg(self, msg, http_res, e):
+    def _build_super_msg(self, msg, http_res, http_r, e):
+        if not http_r and not http_res and not e:
+            return msg
         return {
             'msg': msg,
             'http_response': http_res,
+            'http_request': http_r,
             'original exception': e
         }
 
 
 class ApiError(SpotifyError):
-    def __init__(self, msg, http_response=None, e=None):
+    def __init__(self, msg, http_response=None, http_request=None, e=None):
         ''' https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
         self.msg = msg
         self.http_response = http_response
         self.code = getattr(http_response, 'status_code', None)
-        super_msg = self._build_super_msg(msg, http_response, e)
+        super_msg = self._build_super_msg(msg, http_response, http_request, e)
         super(ApiError, self).__init__(super_msg)
 
 
 class AuthError(SpotifyError):
     ''' https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
-    def __init__(self, msg, http_response=None, e=None):
+    def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
         self.code = getattr(http_response, 'status_code', None)
-        super_msg = self._build_super_msg(msg, http_response, e)
+        super_msg = self._build_super_msg(msg, http_response, http_request, e)
         super(AuthError, self).__init__(super_msg)
 
 
@@ -138,8 +146,6 @@ class ClientCredentials(_Creds):
     def __init__(self, client_id=None, client_secret=None, scopes=ALL_SCOPES, redirect_uri='http://localhost', show_dialog='false'):
         self.client_id = client_id
         self.client_secret = client_secret
-        if not isinstance(scopes, list):
-            raise TypeError('Scopes must be an instance of list')
         self.scopes = scopes
         self.redirect_uri = redirect_uri
         self.show_dialog = show_dialog
@@ -167,17 +173,14 @@ class UserCredentials(_Creds):
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
 
-        if not isinstance(scopes, list):
-            raise TypeError('Scopes must be an instance of list')
-        self.scopes = scopes
-
         if state is None:
             state = self._create_secret()
         self.state = state
 
     def load_from_env(self):
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']
-        self.user_id = os.environ['SPOTIFY_USER_ID']
+        self.user_id = os.getenv('SPOTIFY_USER_ID', None)
+        self.refresh_token = os.getenv('SPOTIFY_REFRESH_TOKEN', None)
 
     @staticmethod
     def _create_secret(bytes_length=32):
@@ -185,22 +188,41 @@ class UserCredentials(_Creds):
 
 
 def _set_empty_user_creds_if_none(f):
-    def innermost(*args, **kwargs):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
         self = args[0]
         if self.user_creds is None:
             self._user_creds = UserCredentials()
         self._caller = self.user_creds
         return f(*args, **kwargs)
-    return innermost
+    return wrapper
+
+
+def _set_empty_client_creds_if_none(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if self.client_creds is None:
+            self.client_creds = ClientCredentials()
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def _require_user_id(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.user_creds.user_id and self.user_creds.access_token:
+            id_ = self._request_user_id(self.user_creds)
+            self.user_creds.user_id = id_
+        return f(*args, **kwargs, user_id=self.user_creds.user_id)
+    return wrapper
 
 
 class Client:
-    def __init__(self, client_creds=None, user_creds=None, ensure_user_auth=False, proxies={}, timeout=4, max_retries=10, enforce_state_check=True):
+    def __init__(self, client_creds=ClientCredentials(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=5, max_retries=10, enforce_state_check=True):
         # The two main credentials model
-        if client_creds is None:
-            self.client_creds = ClientCredentials()
-        else:
-            self.client_creds = client_creds
+        self.client_creds = client_creds
         self._user_creds = user_creds
 
         # Request defaults
@@ -239,7 +261,7 @@ class Client:
 
     def _send_authorized_request(self, r):
         if self._caller.access_is_expired:  # True if expired and None if there's no expiry set
-            self.refresh_token()
+            self._refresh_token()
         r.headers.update(self._access_authorization_header)
         return self._send_request(r)
 
@@ -251,14 +273,15 @@ class Client:
             requests_attempted += 1
             prepped = r.prepare()
             if _DEBUG:
-                pprint.pprint(r.headers)
-                pprint.pprint(r.data)
+                #pprint.pprint({'REQUEST': r.__dict__})
+                logger.debug(pprint.pformat({'REQUEST': r.__dict__}))
             res = self._session.send(prepped, timeout=self.timeout)
             if _DEBUG:
-                pprint.pprint(res.__dict__)
+                #pprint.pprint({'RESPONSE': res.__dict__})
+                logger.debug(pprint.pformat({'RESPONSE': res.__dict__}))
             res.raise_for_status()
         except Timeout as e:
-            raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=res, e=e)
+            raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=None, http_request=r, e=e)
         except HTTPError as e:
             if res.status_code == 429:  # If too many requests
                 while requests_attempted < self.max_retries:
@@ -266,59 +289,41 @@ class Client:
                     current_sleep_period += (BACKOFF_INCREMENT * BACKOFF_EXPONENT)
                     self._send_request(r)
             elif res.status_code == 401:
-                if res.json().get('error', None) == 'The access token expired':
+                if res.json().get('error', None).get('message', None) == 'The access token expired':
                     self._refresh_token()
                     self._send_request(r)
                 else:
                     msg = res.json().get('error_description', None) or res.json()
-                    raise AuthError(msg=msg, http_response=res)  # Or use error for a less verbose error
+                    raise AuthError(msg=msg, http_response=res, http_request=r, e=e)
             else:
                 msg = res.json()
-                raise ApiError(msg=msg, http_response=res, e=e)
+                raise ApiError(msg=msg, http_response=res, http_request=r, e=e)
         else:
             return res
 
-    def refresh_token(self):
-        if self._caller is self.user_creds:
-            return self._refresh_user_token()
-        elif self._caller is self.client_creds:
-            return self.authorize_client_creds()
-        else:
-            raise AuthError('No token to refresh')
-
-    def _refresh_user_token(self):
-        if not self.user_creds.refresh_token:
-            raise AuthError(msg='Access token expired and couldn\'t find a refresh token to refresh it')
-        data = {
-            'grant_type': 'refresh_token',
-            'refresh_token': self.user_creds.refresh_token
-        }
-        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
-        res = self._send_request(Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)).json()
-        new_creds_obj = self._user_json_to_object(res)
-        self._update_user_creds_with(new_creds_obj)
-
-    def authorize_client_creds(self):
+    def authorize_client_creds(self, client_creds=None):
         ''' https://developer.spotify.com/documentation/general/guides/authorization-guide/ 
-            Authorize with client credentials i.e. Only with client secret and client id.
+            Authorize with client credentials oauth flow i.e. Only with client secret and client id.
             This will give you limited functionality '''
-        if self.client_creds and self.client_creds.client_id and self.client_creds.client_secret:
-            data = {
-                'grant_type': 'client_credentials'
-            }
-            headers = self._client_authorization_header
-            try:
-                res = self._send_request(Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data))
-            except ApiError as e:
-                raise AuthError(msg='Failed to authenticate with client credentials', http_response=e.http_response, e=e)
-            else:
-                new_creds_json = res.json()
-                new_creds = self._client_json_to_object(new_creds_json)
-                self._update_client_creds_with(new_creds)
-                self._caller = self.client_creds
-                self._check_authorization()
-        else:
+        if client_creds:
+            if self.client_creds:
+                warnings.warn('Overwriting existing client_creds object')
+            self.client_creds = client_creds
+        if not self.client_creds or not self.client_creds.client_id or not self.client_creds.client_secret:
             raise AuthError('No client credentials set')
+        data = {'grant_type': 'client_credentials'}
+        headers = self._client_authorization_header
+        try:
+            r = Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
+            res = self._send_request(r)
+        except ApiError as e:
+            raise AuthError(msg='Failed to authenticate with client credentials', http_response=e.http_response, http_request=r, e=e)
+        else:
+            new_creds_json = res.json()
+            new_creds_model = self._client_json_to_object(new_creds_json)
+            self._update_client_creds_with(new_creds_model)
+            self._caller = self.client_creds
+            self._check_authorization()
 
     @property
     def user_creds(self):
@@ -340,7 +345,6 @@ class Client:
     @_set_empty_user_creds_if_none
     def oauth_uri(self):
         ''' Generate OAuth URI for authentication '''
-        #self._create_user_creds_if_none()
         params = {
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
@@ -365,16 +369,33 @@ class Client:
             return True
 
     def _refresh_token(self):
-        if self._caller == self.user_creds:
-            self._refresh_user_token()
-        elif self._caller == self.client_creds:
-            self.authorize_client_creds()
+        if self._caller is self.user_creds:
+            return self._refresh_user_token()
+        elif self._caller is self.client_creds:
+            return self.authorize_client_creds()
+        else:
+            raise AuthError('No token to refresh')
+
+    def _refresh_user_token(self):
+        if not self.user_creds.refresh_token:
+            raise AuthError(msg='Access token expired and couldn\'t find a refresh token to refresh it')
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': self.user_creds.refresh_token
+        }
+        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
+        res = self._send_request(Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)).json()
+        new_creds_obj = self._user_json_to_object(res)
+        self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    def build_user_credentials(self, grant, state=None, set_user_creds=True, update_user_creds=False, fetch_user_id=True):
-        ''' Part of OAuth authorization code flow
-            Sets a user_creds model if successful
-            Raises an error if not successful '''
+    def build_user_credentials(self, grant, state=None, set_user_creds=True, update_user_creds=True, fetch_user_id=True):
+        ''' Second part of OAuth authorization code flow, Raises an
+            - state: State returned from oauth callback
+            - set_user_creds: Whether or not to set the user created to the client as the current active user
+            - update_user_creds: If set to yes, it will update the attributes of the client's current user if set. Else, it will overwrite the existing one. Must have set_user_creds.
+            - fetch_user_id: if yes, it will call the /me endpoint and try to fetch the user id, which will be needed to fetch user owned resources
+            '''
         # Check for equality of states
         if state is not None:
             if state != getattr(self.user_creds, 'state', None):
@@ -383,19 +404,19 @@ class Client:
                 raise AuthError(msg='States do not match or state not provided', http_response=res)
         # Get user creds
         user_creds_json = self._request_user_creds(grant).json()
-        new_user_creds = self._user_json_to_object(user_creds_json)
+        user_creds_model = self._user_json_to_object(user_creds_json)
         # Update user id
         if fetch_user_id:
-            id_ = self._request_user_id(new_user_creds)
-            new_user_creds.user_id = id_
+            id_ = self._request_user_id(user_creds_model)
+            user_creds_model.user_id = id_
         # Update user creds
         if update_user_creds and set_user_creds:
-            self._update_user_creds_with(new_user_creds)
+            self._update_user_creds_with(user_creds_model)
             return self.user_creds
         # Set user creds
         if set_user_creds:
             return self.user_creds
-        return new_user_creds
+        return user_creds_model
 
     def _request_user_creds(self, grant):
         data = {
@@ -414,11 +435,16 @@ class Client:
         res = self._send_request(Request(method='GET', url=url, headers=header)).json()
         return res['id']
 
+    @_set_empty_client_creds_if_none
     def _update_user_creds_with(self, user_creds_object):
-        self.user_creds.__dict__.update(user_creds_object.__dict__)
+        for key, value in user_creds_object.__dict__.items():
+            if value is not None:
+                setattr(self.user_creds, key, value)
 
     def _update_client_creds_with(self, client_creds_object):
-        self.client_creds.__dict__.update(client_creds_object.__dict__)
+        for key, value in client_creds_object.__dict__.items():
+            if value is not None:
+                setattr(self.client_creds, key, value)
 
     def _user_json_to_object(self, json_response):
         return UserCredentials(
@@ -428,7 +454,8 @@ class Client:
             refresh_token=json_response['refresh_token']
         )
 
-    def _client_json_to_object(self, json_response):
+    @staticmethod
+    def _client_json_to_object(json_response):
         creds = ClientCredentials()
         creds.access_token = json_response['access_token']
         creds.expiry = datetime.datetime.now() + datetime.timedelta(seconds=json_response['expires_in'])
@@ -480,6 +507,12 @@ class Client:
         return self._send_authorized_request(r).json()
 
     @property
+    @_require_user_id
+    def user_platlists(self, user_id):
+        r = Request(method='GET', url=BASE_URI + 'users/' + user_id + '/playlists')
+        return self._send_authorized_request(r).json()
+
+    @property
     def tracks(self):
         r = Request(method='GET', url=BASE_URI + 'me/tracks')
         return self._send_authorized_request(r).json()
@@ -487,4 +520,9 @@ class Client:
     @property
     def random_tracks(self):
         r = Request(method='GET', url=BASE_URI + 'tracks')
+        return self._send_authorized_request(r).json()
+
+    @property
+    def categories(self):
+        r = Request(method='GET', url=BASE_URI + 'browse/categories')
         return self._send_authorized_request(r).json()

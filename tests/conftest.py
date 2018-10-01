@@ -3,7 +3,7 @@ from pytest import fixture
 
 from pyfy import Client, ClientCredentials, UserCredentials
 
-@fixture(scope='session')
+@fixture(scope='function')
 def client():
     yield Client()
 
@@ -31,4 +31,6 @@ def client_creds_from_env():
 def user_creds_from_env():
     user = UserCredentials()
     user.load_from_env()
+    if not user.access_token:
+        raise AttributeError('User must have an access token for some tests to run')
     yield user

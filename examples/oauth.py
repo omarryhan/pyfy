@@ -13,11 +13,13 @@ except:
 app = Flask(__name__)
 
 client = Client()
+client_creds = ClientCredentials()
 
 @app.route('/authorize')
 def authorize():
     export_keys()
-    client.client_creds.load_from_env()
+    client_creds.load_from_env()
+    client.client_creds = client_creds
     if client.is_oauth_ready:
         return redirect(client.oauth_uri)
     else:
