@@ -8,16 +8,19 @@ import pytest
 empty_client_creds = ClientCredentials()
 
 
-def test_user_is_authenticated_by_access_token(user_creds_from_env):
-    Client(client_creds=empty_client_creds, user_creds=user_creds_from_env, ensure_user_auth=True)
+def test_user_is_authenticated_by_access_token(user_creds_from_env, client_creds_from_env):
+    '''
+    This will also work if you provide an empty client creds model. But when the access token eventually expires you'll need valid client creds to refresh it
+    '''
+    Client(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
 
 
-def test_user_is_rejected_with_bad_access_token(user_creds_from_env):
+def test_user_is_rejected_with_bad_access_token(user_creds_from_env, client_creds_from_env):
     user_creds_from_env.access_token = 'BAD_ACCESS_TOKEN'
     with pytest.raises(AuthError):
-        Client(client_creds=empty_client_creds, user_creds=user_creds_from_env, ensure_user_auth=True)
+        Client(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
 
 
-def test_authenticated_user_is_authorized(user_creds_from_env):
-    client = Client(client_creds=empty_client_creds, user_creds=user_creds_from_env, ensure_user_auth=True)
+def test_authenticated_user_is_authorized(user_creds_from_env, client_creds_from_env):
+    client = Client(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
     assert client.me
