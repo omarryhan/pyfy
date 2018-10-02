@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.org/omarryhan/Pyfy.svg?branch=master)](https://travis-ci.org/omarryhan/Pyfy)
 # Spotify web API wrapper
-
-![Spotify's Logo](https://newsroom.spotify.com/media/mediakit/2018-03-19_22-28-43/Spotify_Logo_CMYK_Green.png)
+<img src="https://newsroom.spotify.com/media/mediakit/2018-03-19_22-28-43/Spotify_Logo_CMYK_Green.png" alt="picture" style="width:300px;"/>
 
 ### Setup
 `$ pip install pyfy`
