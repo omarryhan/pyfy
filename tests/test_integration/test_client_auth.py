@@ -39,7 +39,8 @@ def test_client_credentials_oauth_is_authorized(client, client_creds_from_env):
     # https://developer.spotify.com/documentation/web-api/reference/browse/get-list-categories/
     client.client_creds = client_creds_from_env
     client.authorize_client_creds()
-    assert client.get_categories()
+    assert client.is_active
+    assert client.categories()
 
 
 def test_client_credentials_refresh(client, client_creds_from_env):
