@@ -35,15 +35,31 @@ def test_client_is_not_oauth_ready_without_redirect_uri(client_creds_from_env):
     assert not client_creds_from_env.is_oauth_ready  # assert not ready when there's no redirect uri
 
 
-def test_user_model_pickled_to_default_path(user_creds_from_env):
-    user_creds_from_env.save_to_file()
+def test_creds_pickle(user_creds_from_env):
+    user_creds_from_env.pickle()
     user_creds_from_env._delete_pickle()
 
 
-def test_user_model_loaded_from_pickle_to_default_path(user_creds_from_env):
-    user_creds_from_env.save_to_file()
-    user_creds_from_env.load_from_file()    
-    user_creds_from_env._delete_pickle()
+#def test_creds_pickle_loads_data_properly(user_creds_from_env):
+#    user_creds_from_env.pickle()
+#    new_user_creds = UserCredentials()
+#    new_user_creds =new_user_creds.unpickle()
+#    assert new_user_creds.__dict__ == user_creds_from_env.__dict__
+#    user_creds_from_env._delete_pickle()
+
+
+def test_creds_json_flow(user_creds_from_env):
+    user_creds_from_env.save_as_json()
+    user_creds_from_env.load_from_json()
+    user_creds_from_env._delete_json()
+
+
+def test_creds_json_loads_data_properly(user_creds_from_env):
+    user_creds_from_env.save_as_json()
+    new_user_creds = UserCredentials()
+    new_user_creds.load_from_json()
+    assert new_user_creds.__dict__ == user_creds_from_env.__dict__
+    user_creds_from_env._delete_json()
 
 
 def test_creds_is_not_instantiable():

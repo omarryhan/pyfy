@@ -53,6 +53,10 @@ def is_active():
         )
     )    
 
+@app.route('/dump_creds')
+def dump_creds():
+    # TODO: save both client and user creds and send to user as json files to downlaod
+    return 'Not Implemented', 200
 
 @app.route('/')
 def index():

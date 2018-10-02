@@ -8,12 +8,12 @@ import pickle
 import secrets
 import logging
 import warnings
-import dateutil
 import datetime
 from time import sleep
 from urllib import parse
 from functools import wraps
 
+import dateutil
 from requests import Request, Session, Response
 from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
 from requests.adapters import HTTPAdapter
@@ -38,8 +38,11 @@ __all__ = [
     'Client'
 ]
 
-BACKOFF_FACTOR = 0.1
-TOKEN_EXPIRED_MSG = 'The access token expired'
+try:
+    DEFAULT_FILENAME_BASE = socket.gethostname() + "_" + "Spotify_"
+except:
+    DEFAULT_FILENAME_BASE = 'Spotify_'
+TOKEN_EXPIRED_MSG = 'The access token expired'  # Msg sent back when token is expired
 _DEBUG = False  # If true, client will log every request and response in a pretty printed format
 BASE_URI = 'https://api.spotify.com/v1'
 OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -83,12 +86,6 @@ class SpotifyError(Exception):
     def _build_super_msg(self, msg, http_res, http_req, e):
         if not http_req and not http_res and not e:
             return msg
-        elif getattr(http_res, 'status_code') == 404 and http_req:  # If bad request or not found, show url and data
-            body = http_req.data or http_req.json
-            return 'Error msg = {}\nHTTP Error = Resource not found .\nRequest URL = {}\nRequest body = {}'.format(
-                msg,
-                http_req.url, pprint.pformat(body)
-            )
         elif getattr(http_res, 'status_code') == 400 and http_req:  # If bad request or not found, show url and data
             body = http_req.data or http_req.json
             return 'Error msg = {}\nHTTP Error = Bad Request.\Request URL = {}\nRequest body = {}\nRequest headers = {}'.format(
@@ -100,6 +97,12 @@ class SpotifyError(Exception):
             return 'Error msg = {}\nHTTP Error = Unauthorized. Request headers = {}'.format(
                 msg,
                 pprint.pformat(http_req.headers)
+            )
+        elif getattr(http_res, 'status_code') == 404 and http_req:  # If bad request or not found, show url and data
+            body = http_req.data or http_req.json
+            return 'Error msg = {}\nHTTP Error = Resource not found .\nRequest URL = {}\nRequest body = {}'.format(
+                msg,
+                http_req.url, pprint.pformat(body)
             )
         return {
             'msg': msg,
@@ -135,25 +138,46 @@ class _Creds:
     def __init__(self, *args, **kwargs):
         raise TypeError('_Creds class isn\'nt calleable')
 
-    def save_to_file(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    def pickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
         if name is None:
-            name = socket.gethostname() + "_" + "Spotify_" + self.__class__.__name__
+            name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
         path = os.path.join(path, name)
         with open(path, 'wb') as creds_file:
             pickle.dump(self, creds_file, pickle.HIGHEST_PROTOCOL)
 
-    def load_from_file(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
-        if name is None:
-            name = socket.gethostname() + "_" + "Spotify_" + self.__class__.__name__
-        path = os.path.join(path, name)
-        with open(path, 'rb') as creds_file:
-            self = pickle.load(creds_file)
+    # Unpickling doesn't work by setting an instance's (self) to an output of one of its own methods. Apparently the method must be external 
+    #def unpickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    #    if name is None:
+    #        name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
+    #    path = os.path.join(path, name)
+    #    with open(path, 'rb') as creds_file:
+    #        self = pickle.load(creds_file)
 
     def _delete_pickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
         ''' BE CAREFUL!! THIS WILL PERMENANTLY DELETE ONE OF YOUR FILES IF USED INCORRECTLY
             It is recommended you leave the defaults if you're using this library for personal use only '''
         if name is None:
-            name = socket.gethostname() + "_" + "Spotify_" + self.__class__.__name__
+            name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
+        path = os.path.join(path, name)
+        os.remove(path)
+
+    def save_as_json(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+        if name is None:
+            name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
+        path = os.path.join(path, name)
+        with open(path, 'w') as outfile:
+            json.dump(self.__dict__, outfile)
+
+    def load_from_json(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+        if name is None:
+            name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
+        path = os.path.join(path, name)
+        with open(path, 'r') as infile:
+            self.__dict__.update(json.load(infile))
+
+    def _delete_json(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+        if name is None:
+            name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
         path = os.path.join(path, name)
         os.remove(path)
 
@@ -169,7 +193,7 @@ def _create_secret(bytes_length=32):
 
 
 class ClientCredentials(_Creds):
-    def __init__(self, client_id=None, client_secret=None, scopes=ALL_SCOPES, redirect_uri='http://localhost', show_dialog='false'):
+    def __init__(self, client_id=None, client_secret=None, scopes=ALL_SCOPES, redirect_uri='http://localhost', show_dialog=False):
         '''
         Parameters:
             show_dialog: if set to false, Spotify will not show a new authorization request if user is already authorized
@@ -233,6 +257,8 @@ def _set_empty_client_creds_if_none(f):
 def _require_user_id(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        if kwargs.get('user_id', None): # If user provided an ID, run thr function without changing anything
+            return f(*args, **kwargs)
         self = args[0]
         if not self.user_creds.user_id and self.user_creds.access_token:
             id_ = self._request_user_id(self.user_creds)
@@ -242,7 +268,7 @@ def _require_user_id(f):
 
 
 class Client:
-    def __init__(self, client_creds=ClientCredentials(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True):
+    def __init__(self, client_creds=ClientCredentials(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -260,7 +286,7 @@ class Client:
         # Request defaults
         self.timeout = timeout
         self.max_retries = max_retries
-        self._session = self._create_session(max_retries, proxies)
+        self._session = self._create_session(max_retries, proxies, backoff_factor)
 
         # Api defaults
         self.enforce_state_check = enforce_state_check
@@ -275,10 +301,10 @@ class Client:
             self._caller = self._user_creds
             self._check_authorization()
 
-    def _create_session(self, max_retries, proxies):
+    def _create_session(self, max_retries, proxies, backoff_factor):
         sess = Session()
         # Retry only on idemportent requests and only when too many requests
-        retries = Retry(total=max_retries, backoff_factor=BACKOFF_FACTOR, status_forcelist=[429], method_whitelist=['GET', 'UPDATE', 'DELETE'])
+        retries = Retry(total=max_retries, backoff_factor=backoff_factor, status_forcelist=[429], method_whitelist=['GET', 'UPDATE', 'DELETE'])
         http_adapter = HTTPAdapter(max_retries=retries)
         sess.mount('http://', http_adapter)
         sess.proxies.update(proxies)  
@@ -379,6 +405,7 @@ class Client:
             'response_type': 'code',
             'redirect_uri': self.client_creds.redirect_uri,
             'scopes': ' '.join(self.client_creds.scopes),
+            'show_dialog': json.dumps(self.client_creds.show_dialog)
         }
         if self.enforce_state_check:
             if self.user_creds.state is None:
@@ -425,7 +452,7 @@ class Client:
         ''' Second part of OAuth authorization code flow, Raises an
             - state: State returned from oauth callback
             - set_user_creds: Whether or not to set the user created to the client as the current active user
-            - update_user_creds: If set to yes, it will update the attributes of the client's current user if set. Else, it will overwrite the existing one. Must have set_user_creds.
+            - update_user_creds: If set to yes, it will update the attributes of the client's current user if set. Else, it will overwrite the existing one. Must have set_user_creds as True.
             - fetch_user_id: if yes, it will call the /me endpoint and try to fetch the user id, which will be needed to fetch user owned resources
             '''
         # Check for equality of states
@@ -543,6 +570,9 @@ class Client:
         else:
             raise ApiError(msg='Call Requires an authorized caller, either client or user')
 
+
+################################################################### RESOURCES HELPERS ###################################################################################
+
     @staticmethod
     def _safe_add_query_param(url, query):
         ''' Removes None variables from query, then attaches it to the original url '''
@@ -554,6 +584,8 @@ class Client:
         safe_query = {}
         for k, v in query.items():
             if v not in bad_params:
+                if type(v) == bool:
+                    v = json.dumps(v)
                 safe_query[k] = v
         # Add safe query to url
         if safe_query:
@@ -569,13 +601,14 @@ class Client:
     #    else:
     #        raise ValueError('{} must be a boolean or None'.format(boolean))
 
-    @staticmethod
-    def _json_safe_dict(data):
+    def _json_safe_dict(self, data):
         safe_types = [float, str, int, bool]
         safe_json = {}
         for k, v in data.items():
             if type(v) in safe_types:
                 safe_json[k] = v
+            elif type(v) == dict:
+                safe_json[k] = self._json_safe_dict(v)
         return safe_json
 
     ############################################################### RESOURCES ###################################################################
@@ -844,7 +877,7 @@ class Client:
         params = dict(ids=','.split(track_ids))
         r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
-    
+
     def check_user_owns_albums(self, album_ids):
         url = BASE_URI + '/me/albums/contains'
         params = dict(ids=','.split(album_ids))
@@ -881,33 +914,211 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
+    def get_users_top_tracks(self, time_range=None, limit=None, offset=None):
+        url = BASE_URI + '/top/tracks'
+        params = dict(time_range=time_range, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_users_top_artists(self, time_range=None, limit=None, offset=None):
+        url = BASE_URI + '/top/artists'
+        params = dict(time_range=time_range, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_user_recently_played_tracks(self, limit=None, after=None, before=None):
+        url = BASE_URI + '/me/player/recently-played'
+        params = dict(type='track', limit=limit, after=after, before=before)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_user_currently_playing_info(self, market=None):
+        url = BASE_URI + '/me/player'
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_user_devices(self):
+        url = BASE_URI + '/me/player/devices'
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_user_currently_playing(self, market=None):
+        url = BASE_URI + '/me/player/currently-playing'
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_next(self, device_id=None):
+        url = BASE_URI + '/me/player/next'
+        params = dict(device_id=device_id)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_previous(self, device_id=None):
+        url = BASE_URI + '/me/player/previous'
+        params = dict(device_id=device_id)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_pause(self, device_id=None):
+        url = BASE_URI + '/me/player/pause'
+        params = dict(device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_play(self, device_id=None, context_uri=None, offset_position=None, position_ms=None):
+        url = BASE_URI + '/me/player/play'
+        params = dict(device_id=device_id)
+        data = self._json_safe_dict(
+            {
+                'context_uri': context_uri,
+                'offset': {
+                    'position': offset_position
+                },
+                'position_ms': position_ms
+            }
+        )
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    def playback_repeat(self, state='context', device_id=None):
+        url = BASE_URI + '/me/player/repeat'
+        params = dict(state=state, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_seek(self, position_ms, device_id=None):
+        url = BASE_URI + '/me/player/seek'
+        params = dict(position_ms=position_ms, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_shuffle(self, state=True, device_id=None):
+        url = BASE_URI + '/me/player/shuffle'
+        params = dict(state=state, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_transfer(self, device_ids=[]):
+        url = BASE_URI + '/me/player'
+        params = {}
+        data = self._json_safe_dict(dict(device_ids=device_ids))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    def playback_volume(self, volume_percent, device_id=None):
+        url = BASE_URI + '/me/player/volume'
+        params = dict(volume_percent=volume_percent, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def delete_playlist_tracks(self, playlist_id, tracks=[]):
+        ''' tracks should be a list of track dicts that have uri and positions of the track '''
+        url = BASE_URI + '/playlist/' + playlist_id + '/tracks'
+        params = {}
+        data = self._json_safe_dict(dict(tracks=tracks))
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    def get_user_playlists(self, limit=None, offset=None):
+        url = BASE_URI + '/me/playlists'
+        params = dict(limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = dict(market=market, fields=fields, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_playlist(self, playlist_id, market=None, fields=None):
+        url = BASE_URI + '/playlists/' + playlist_id
+        params = dict(market=market, fields=fields)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_require_user_id
+    def get_user_playlists_list(self, user_id=None, limit=None, offset=None):
+        url = BASE_URI + '/users/' + user_id + '/playlists'
+        params = dict(limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def add_playlist_tracks(self, playlist_id, track_uris, position=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = dict(position=position, uris=track_uris)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def create_playlist(self, name, description=None, public=False):
+        url = BASE_URI + '/playlists'
+        params = {}
+        data = dict(name=name, description=description, public=public)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        return self._send_authorized_request(r).json()
+
+    def reorder_replace_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = {}
+        data = dict(range_start=range_start, range_length=range_length, insert_before=insert_before)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        return self._send_authorized_request(r).json()
+
+    def update_playlist(self, playlist_id, name=None, description=None, public=None):
+        url = BASE_URI + '/playlists/' + playlist_id
+        params = {}
+        data = dict(name=name, description=description, public=public)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        return self._send_authorized_request(r).json()
+
+    def search(self, q, types, market=None, limit=None, offset=None):
+        url = BASE_URI + '/search'
+        params = dict(q=q, type=types, market=market, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_track_audio_analysis(self, track_id):
+        url = BASE_URI + '/audio-analysis/' + track_id
+        params = {}
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_tracks_audio_features(self, track_ids):
+        url = BASE_URI + '/audio-features'
+        params = dict(ids=track_ids)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_track_audio_features(self, track_id):
+        url = BASE_URI + '/audio-features/' + track_id
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_tracks(self, track_ids, market=None):
+        url = BASE_URI + '/tracks'
+        params = dict(ids=track_ids, market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def get_track(self, track_id, market=None):
+        url = BASE_URI + '/tracks/' + track_id
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+    
     @property
     def me(self):
-        r = Request(method='GET', url=BASE_URI + '/me')
+        url = BASE_URI + '/me'
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @property
-    def playlists(self):
-        r = Request(method='GET', url=BASE_URI + '/me/playlists')
-        return self._send_authorized_request(r).json()
-
-    @property
-    @_require_user_id
-    def user_platlists(self, user_id):
-        r = Request(method='GET', url=BASE_URI + '/users/' + user_id + '/playlists')
-        return self._send_authorized_request(r).json()
-
-    @property
-    def tracks(self):
-        r = Request(method='GET', url=BASE_URI + '/me/tracks')
-        return self._send_authorized_request(r).json()
-
-    @property
-    def random_tracks(self):
-        r = Request(method='GET', url=BASE_URI + '/tracks')
-        return self._send_authorized_request(r).json()
-
-    @property
-    def categories(self):
-        r = Request(method='GET', url=BASE_URI + '/browse/categories')
+    def get_user_profile(self, user_id):
+        url = BASE_URI + '/users/' + user_id
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
