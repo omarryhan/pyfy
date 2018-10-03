@@ -1,7 +1,7 @@
 import pytest
 from pytest import fixture
 
-from pyfy import Spotify, ClientCreds, UserCreds
+from pyfy import Spotify, ClientCreds, UserCreds, _safe_get
 
 @fixture(scope='function')
 def spotify():
@@ -112,3 +112,68 @@ def biosphere_public_playlist_id():
 @fixture
 def aes_dana_public_playlist_id():
     return '37i9dQZF1DZ06evO3LdcHu'
+
+
+@fixture
+def metal_essentials_playlist_id():
+    return '37i9dQZF1DWWOaP4H0w5b0'
+
+@fixture
+def brian_eno_playlist_id():
+    return '22dXpXoyZjk9bhZABaIDOq'
+
+@fixture
+def the_metal_podcast_id():
+    return '0O1qo57pGLPvk5BcK7HXk6'
+
+@fixture
+def ambient_podcast_id():
+    return '279ykQVh10jwcXuaikY82k'
+
+@fixture
+def john_smith_user_id():
+    return '1235168545'
+
+@fixture
+def spotify_test_user_id():
+    return 'asbmkbqbyrh657mrrzx4c94dd'
+
+@fixture
+def test_artist_id():
+    return '5OV9PowyUJwaXMsLC9GlEE'
+
+@fixture
+def testing_funny_artist_id():  # That's an actual band (testing funny)
+    return '1X8mNJTyrSeJ6XrTwOfC1u'
+
+@fixture
+def gods_plan_track_id():
+    return '6DCZcSspjsKoFjzjrWoCdn'
+
+@fixture
+def pound_cake_track_id():
+    return '4RI9eX7jNcdaQOJifn7t6z'
+
+@fixture
+def nothing_was_the_same_album_id():
+    return '2ZUFSbIkmFkGag000RWOpA'
+
+@fixture
+def scorpion_album_id():
+    return '1ATL5GLyefJaxhQzSPVrLX'
+
+@fixture
+def them_bones_track_id():
+    return '4A065x9kJt955eGVqf813g'
+
+#### misc
+
+@fixture()
+def new_playlist_name():
+    return 'TEST_PLAYLIST'
+
+@fixture(scope='function')
+def new_playlist_id(spotify_user_auth, new_playlist_name):
+    for playlist in spotify_user_auth.user_playlists()['items']: 
+        if _safe_get(playlist, 'name') == new_playlist_name:
+            return _safe_get(playlist, 'id')

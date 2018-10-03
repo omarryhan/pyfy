@@ -7,7 +7,7 @@
 </p>
 
 # Spotify Web API Wrapper
-## ** UNDER DEVELOPMENT **
+## ** BETA **
 
 
 ## Features
@@ -21,25 +21,26 @@
 - Unit and integration tested
 - Fit for both production and experimental/personal environments
 - Able to automatically default to user's locales
+- Neatly handles type conversions when necessary
 
 ## Quick Start
 
     from pyfy import Spotify, UserCreds
 
     user = UserCreds(access_token='secret_access_token')
-    spt = Spotify()
+    spt = Spotify(user_creds=user)
     spt.play()
+    json_search_results = spt.search(q='alice in chains them bones')
 
-## Authentication
+## Authentication and Authorization
 
 ### 1. By Client Credentials:  *[get from here](https://developer.spotify.com/dashboard/applications)
 
     from pyfy import ClientCreds, Spotify
 
-    client = ClientCreds(client_id=<client_id>, client_secred=<client_secret>_)
+    client = ClientCreds(client_id=client_id, client_secred=client_secret)
     spt = Spotify(client)
     spt.authorize_client_creds()
-    json_search_results = spt.search(q='alice in chains them bones')
 
 ### 2. By User's Access Token: *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
 
@@ -47,7 +48,6 @@
 
     user = UserCreds(access_token='user\'s access token')
     spt = Spotify(user_creds=user)
-    spt.user_playlists()
 
 ### 3. With Authorization code flow (OAuth2)
 
@@ -79,7 +79,7 @@
         except ApiError:
             abort(500)
 
-### 👨. Ways to load Credentials (User & Client)
+### 👨 Ways to load Credentials (User & Client)
     # Instantiate directly
     client = ClientCreds(client_id='aclientid', client_secret='averysecrettok**')
 
@@ -89,16 +89,81 @@
 
     # Load from json file
     client = ClientCreds()
-    client.load_from_json(path=<full/file/path>, name=<file\'s_name>)
+    client.load_from_json(path=<full/file/path>, name=files_name)
 
-## 🎶 Resources 🎶
+## 🎶 Resources
 
-    # User owned resources
-    spt.user_tracks()
-    spt.user_playlists()
+- Resources:
+  - Tracks:
+    - tracks()
+    - user_tracks()
+    - delete_tracks()
+    - owns_tracks()
+    - save_tracks()
+    - user_top_tracks
+  - Albums:
+    - albums()
+    - user_albums()
+    - delete_albums()
+    - owns_albums()
+    - save_albums()
+  - Artists:
+    - artists()
+    - followed_artists()
+    - artist_top_tracks()
+    - artist_related_artists()
+    - follow_artists()       
+    - follows_artists()
+    - user_top_artists
+  - Playlists:
+    - playlist()
+    - user_playlists()
+    - unfollow_playlist()
+    - delete_playlist()
+    - follow_playlist()
+    - follows_playlist()
+    - create_playlist()
+    - delete_playlist()
+    - playlist_tracks()):
+    - add_playlist_tracks()
+    - delete_playlist_tracks()
+    - reorder_playlist_track()
+    - update_playlist()
+  - Users:
+    - follows_users()
+    - unfollow_users()
+    - follow_users()       
+    - user_profile()
+    - me
+    - is_premium
+  - Playback:
+    - recently_played_tracks()
+    - currently_playing_info()
+    - currently_playing()
+    - devices()
+    - previous()
+    - pause()
+    - play()
+    - repeat()
+    - seek()
+    - shuffle()
+    - playback_transfer()
+    - volume() device
+  - Others:
+    - artist_albums()
+    - album_tracks()
+    - search()
+  - Explore and Personalization:
+    - available_genre_seeds()
+    - categories()
+    - category_playlist()
+    - featured_playlists()
+    - new_releases()
+    - recommendations()
+    - track_audio_analysis()
+    - tracks_audio_features()
 
-
-## Setup
+## Installation and Setup
 
     $ pip install pyfy
 
@@ -123,7 +188,8 @@
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
     *The tests will carefully teardown all resources created<br>
     *Integration tests will not be abusive to the API and should only test for successfull integration with minimum API calls<br>
-    *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by: `pip install flask pyfy && python examples/oauth.py`<br>
+    *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth.py`<br>
+    *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) documentiation instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
         $ tox
 
@@ -191,3 +257,8 @@
   - build_user_credentials()
 
   - Resources....
+
+## Contribute
+
+- Would be nice if someone can write some documentations. Maybe using Sphynx?
+- More unit and integration tests

@@ -49,7 +49,4 @@ def test_new_releases(spotify_user_auth):
     assert spotify_user_auth.new_releases()
 
 def test_recommendations(spotify_user_auth):
-    # Not working for me. Try here: https://developer.spotify.com/console/get-recommendations/
-    #assert spotify_user_auth.recommendations(max_energy=1.0, min_energy=0.8)
-    #assert spotify_user_auth.recommendations()
-    assert True
+    assert spotify_user_auth.recommendations(market='US', seed_tracks='0c6xIDDpzE81m2q797ordA', min_energy=0.4, min_popularity=50)
