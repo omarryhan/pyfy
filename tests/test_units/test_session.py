@@ -1,3 +1,3 @@
-from pyfy import Client
+from pyfy import Spotify
 
 

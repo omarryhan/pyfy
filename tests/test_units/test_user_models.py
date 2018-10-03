@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from pyfy import ClientCredentials, UserCredentials, _Creds
+from pyfy import ClientCreds, UserCreds, _Creds
 
 
 def test_creds_loaded_from_env(user_creds_from_env, client_creds_from_env):
@@ -42,7 +42,7 @@ def test_creds_pickle(user_creds_from_env):
 
 #def test_creds_pickle_loads_data_properly(user_creds_from_env):
 #    user_creds_from_env.pickle()
-#    new_user_creds = UserCredentials()
+#    new_user_creds = UserCreds()
 #    new_user_creds =new_user_creds.unpickle()
 #    assert new_user_creds.__dict__ == user_creds_from_env.__dict__
 #    user_creds_from_env._delete_pickle()
@@ -56,7 +56,7 @@ def test_creds_json_flow(user_creds_from_env):
 
 def test_creds_json_loads_data_properly(user_creds_from_env):
     user_creds_from_env.save_as_json()
-    new_user_creds = UserCredentials()
+    new_user_creds = UserCreds()
     new_user_creds.load_from_json()
     assert new_user_creds.__dict__ == user_creds_from_env.__dict__
     user_creds_from_env._delete_json()

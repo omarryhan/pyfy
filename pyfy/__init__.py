@@ -32,8 +32,8 @@ __all__ = [
     'SpotifyError',
     'ApiError',
     'AuthError',
-    'ClientCredentials',
-    'UserCredentials',
+    'ClientCreds',
+    'UserCreds',
     'Client'
 ]
 
@@ -141,7 +141,7 @@ def _set_empty_user_creds_if_none(f):
     def wrapper(*args, **kwargs):
         self = args[0]
         if self.user_creds is None:
-            self._user_creds = UserCredentials()
+            self._user_creds = UserCreds()
         self._caller = self.user_creds
         return f(*args, **kwargs)
     return wrapper
@@ -152,7 +152,7 @@ def _set_empty_client_creds_if_none(f):
     def wrapper(*args, **kwargs):
         self = args[0]
         if self.client_creds is None:
-            self.client_creds = ClientCredentials()
+            self.client_creds = ClientCreds()
         return f(*args, **kwargs)
     return wrapper
 
@@ -179,10 +179,9 @@ def _safe_get(dct, *keys):
     return dct
 
 
-def _market_injectable(argument_name, support_from_token=True):  # market or country
+def _locale_injectable(argument_name, support_from_token=True):  # market or country
+    ''' Injects user's locale if applicable. Only supports one input, either market or country (interchangeable) '''
     def outer_wrapper(f):
-        ''' In case you're curious: The reason you should pass the argument name instead of just wrapping the method is
-        that there's no way you can know whether the argument is None because it doesn't exist or because it wasn't passed a value '''
         @wraps(f)
         def wrapper(*args, **kwargs):
             if kwargs.get(argument_name) is None:  # If user didn't assign to the parameter, inject
@@ -260,7 +259,7 @@ class _Creds:
         return None
 
 
-class ClientCredentials(_Creds):
+class ClientCreds(_Creds):
     def __init__(self, client_id=None, client_secret=None, scopes=ALL_SCOPES, redirect_uri='http://localhost', show_dialog=False):
         '''
         Parameters:
@@ -287,7 +286,7 @@ class ClientCredentials(_Creds):
         return False
 
 
-class UserCredentials(_Creds):
+class UserCreds(_Creds):
     def __init__(self, access_token=None, refresh_token=None, scopes=[], expiry=None, user_id=None, state=_create_secret()):
         self.access_token = access_token
         self.refresh_token = refresh_token
@@ -300,8 +299,8 @@ class UserCredentials(_Creds):
         self.refresh_token = os.getenv('SPOTIFY_REFRESH_TOKEN', None)
 
 
-class Client:
-    def __init__(self, client_creds=ClientCredentials(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_local_country=True):
+class Spotify:
+    def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_local_country=True):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -547,7 +546,7 @@ class Client:
                 setattr(self.client_creds, key, value)
 
     def _user_json_to_object(self, json_response):
-        return UserCredentials(
+        return UserCreds(
             access_token=json_response['access_token'],
             scopes=json_response['scope'].split(' '),
             expiry=datetime.datetime.now() + datetime.timedelta(seconds=json_response['expires_in']),
@@ -556,7 +555,7 @@ class Client:
 
     @staticmethod
     def _client_json_to_object(json_response):
-        creds = ClientCredentials()
+        creds = ClientCreds()
         creds.access_token = json_response['access_token']
         creds.expiry = datetime.datetime.now() + datetime.timedelta(seconds=json_response['expires_in'])
         return creds
@@ -668,14 +667,14 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def user_tracks(self, market=None, limit=None, offset=None):
         url = BASE_URI + '/me/tracks'
         params = dict(market=market, limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def playlist(self, playlist_id, market=None, fields=None):
         url = BASE_URI + '/playlists/' + playlist_id
         params = dict(market=market, fields=fields)
@@ -688,7 +687,7 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def tracks(self, track_ids, market=None):
         if self._is_single_resource(track_ids):
             return self._track(track_id=self._parametrize_list(track_ids), market=market)
@@ -717,7 +716,7 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def albums(self, album_ids, market=None):
         if self._is_single_resource(album_ids):
             return self._album(self._parametrize_list(album_ids), market)
@@ -726,14 +725,14 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def album_tracks(self, album_id, market=None, limit=None, offset=None):
         url = BASE_URI + '/albums/' + album_id + '/tracks'
         params = dict(market=market, limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None):
         url = BASE_URI + '/artists/' + artist_id + '/albums'
         params = dict(include_groups=include_groups, market=market, limit=limit, offset=offset)
@@ -746,7 +745,7 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('country')
+    @_locale_injectable('country')
     def artist_top_tracks(self, artist_id, country=None):
         url = BASE_URI + '/artists/' + artist_id + '/top-tracks'
         params = dict(country=country)
@@ -757,28 +756,28 @@ class Client:
         r = Request(method='GET', url=BASE_URI + '/recommendations/available-genre-seeds')
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('country', support_from_token=False)
+    @_locale_injectable('country', support_from_token=False)
     def category(self, category_id, country=None, locale=None):
         url = BASE_URI + '/browse/categories/' + category_id
         params = dict(country=country, locale=locale)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()  
 
-    @_market_injectable('country', support_from_token=False)
+    @_locale_injectable('country', support_from_token=False)
     def categories(self, country=None, locale=None, limit=None, offset=None):
         url = BASE_URI + '/browse/categories'
         params = dict(country=country, locale=locale, limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('country', support_from_token=False)
+    @_locale_injectable('country', support_from_token=False)
     def category_playlist(self, category_id, country=None, limit=None, offset=None):
         url = BASE_URI + '/browse/categories/' + category_id + '/playlists'
         params = dict(country=country, limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('country', support_from_token=False)
+    @_locale_injectable('country', support_from_token=False)
     def featured_playlists(self, country=None, locale=None, timestamp=None, limit=None, offset=None):
         if isinstance(timestamp, datetime.datetime):
             timestamp = self._convert_to_iso_date(timestamp)
@@ -787,14 +786,14 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('country', support_from_token=False)
+    @_locale_injectable('country', support_from_token=False)
     def new_releases(self, country=None, limit=None, offset=None):
         url = BASE_URI + '/browse/new-releases'
         params = dict(country=country, limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market', support_from_token=False)
+    @_locale_injectable('market', support_from_token=False)
     def recommendations(
         self,
         limit=None,
@@ -1020,14 +1019,14 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def currently_playing_info(self, market=None):
         url = BASE_URI + '/me/player'
         params = dict(market=market)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def currently_playing(self, market=None):
         url = BASE_URI + '/me/player/currently-playing'
         params = dict(market=market)
@@ -1108,10 +1107,10 @@ class Client:
         url = BASE_URI + '/playlists'
         params = {}
         data = dict(name=name, description=description, public=public)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        r = Request(method='POST', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
         params = dict(market=market, fields=fields, limit=limit, offset=offset)
@@ -1132,7 +1131,7 @@ class Client:
         r = Request(method='DELETE', url=self._safe_add_query_param(url, params), json=data)
         return self._send_authorized_request(r).json()
 
-    def reorder_replace_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None):
+    def reorder_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None):
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
         params = {}
         data = dict(range_start=range_start, range_length=range_length, insert_before=insert_before)
@@ -1146,7 +1145,7 @@ class Client:
         r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
         return self._send_authorized_request(r).json()
 
-    @_market_injectable('market')
+    @_locale_injectable('market')
     def search(self, q, types, market=None, limit=None, offset=None):
         ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
         url = BASE_URI + '/search'
@@ -1160,15 +1159,17 @@ class Client:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def tracks_audio_features(self, track_ids):
-        url = BASE_URI + '/audio-features'
-        params = dict(ids=self._parametrize_list(track_ids))
+    def _track_audio_features(self, track_id):
+        url = BASE_URI + '/audio-features/' + track_id
+        params = dict()
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def track_audio_features(self, track_id):
-        url = BASE_URI + '/audio-features/' + track_id
-        params = dict()
+    def tracks_audio_features(self, track_ids):
+        if self._is_single_resource(track_ids):
+            return self._track_audio_features(self._parametrize_list(track_ids))
+        url = BASE_URI + '/audio-features'
+        params = dict(ids=self._parametrize_list(track_ids))
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 

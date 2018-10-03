@@ -1,87 +1,101 @@
-[![Build Status](https://travis-ci.org/omarryhan/Pyfy.svg?branch=master)](https://travis-ci.org/omarryhan/Pyfy)
+<p align="center">
+  <img src="https://newsroom.spotify.com/media/mediakit/2018-03-19_22-28-43/Spotify_Logo_CMYK_Green.png" alt="Logo" style="width:700px;"/>
+  <p align="center">
+    <a href="https://travis-ci.org/omarryhan/Pyfy"><img alt="Build Status" src="https://travis-ci.org/omarryhan/Pyfy.svg?branch=master"></a>
+    <a href="https://github.com/omarryhan/flask-stateless-auth"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+  </p>
+</p>
+
 # Spotify Web API Wrapper
 ## ** UNDER DEVELOPMENT **
-<img src="https://newsroom.spotify.com/media/mediakit/2018-03-19_22-28-43/Spotify_Logo_CMYK_Green.png" alt="picture" style="width:300px;"/>
 
 
 ## Features
 
-- Supports:
+- Support for:
   - OAuth2 client credentials flow
   - OAuth2 authroization code flow
-  - Access token only authentication
+  - Access token only authorization
 - Automatically refreshes tokens for client and users
 - Descriptive errors
 - Unit and integration tested
 - Fit for both production and experimental/personal environments
-- Able to automatically default to user's local country
+- Able to automatically default to user's locales
 
 ## Quick Start
 
+    from pyfy import Spotify, UserCreds
+
+    user = UserCreds(access_token='secret_access_token')
+    spt = Spotify()
+    spt.play()
+
+## Authentication
+
 ### 1. By Client Credentials:  *[get from here](https://developer.spotify.com/dashboard/applications)
 
-    from pyfy import ClientCredentials, Client
+    from pyfy import ClientCreds, Spotify
 
-    client_creds = ClientCredentials(client_id=<client_id>, client_secred=<client_secret>_)
-    client = Client(client_creds)
-    client.authorize_client_creds()
-    json_search_results = client.search(q='alice in chains them bones')
+    client = ClientCreds(client_id=<client_id>, client_secred=<client_secret>_)
+    spt = Spotify(client)
+    spt.authorize_client_creds()
+    json_search_results = spt.search(q='alice in chains them bones')
 
 ### 2. By User's Access Token: *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
 
-    from pyfy import Client, UserCredentials
+    from pyfy import Spotify, UserCreds
 
-    user_creds = UserCredentials(access_token='user\'s access token')
-    client = Client(user_creds=user_creds)
-    client.playback_play()
-    client.playback_pause()
+    user = UserCreds(access_token='user\'s access token')
+    spt = Spotify(user_creds=user)
+    spt.user_playlists()
 
 ### 3. With Authorization code flow (OAuth2)
 
-    from pyfy import Client, ClientCredentials, UserCredentials, AuthError, ApiError
+    from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
 
-    client_creds = ClientCredentials(client_id='clientid', client_secret='client_secret')
-    client = Client(client_creds)
+    client = ClientCreds(client_id='clientid', client_secret='client_secret')
+    spt = Spotify(client)
     
     def authorize():
         # Fist step of OAuth, Redirect user to spotify's authorization endpoint
-        if client.is_oauth_ready:
-            return redirect(client.oauth_uri)
+        if spt.is_oauth_ready:
+            return redirect(spt.oauth_uri)
 
     # Authorization callback
     def callback(grant):
         try:
-            user_creds = client.build_credentials(grant=grant, set_user=True)
+            user_creds = spt.build_credentials(grant=grant, set_user=True)
         except AuthError as e:
             abort(401)
             logging.info(e.msg)
             logging.info(e.http_response)
         else:
             db.insert(user_creds)
+            return redirect(url_for_home)
 
     def get_user_tracks():
         try:
-            return json.dumps(client.get_user_tracks())
+            return json.dumps(spt.user_tracks())
         except ApiError:
             abort(500)
 
 ### 👨. Ways to load Credentials (User & Client)
     # Instantiate directly
-    client_creds = ClientCredentials(client_id='aclientid', client_secret='averysecrettok**')
+    client = ClientCreds(client_id='aclientid', client_secret='averysecrettok**')
 
     # Load from environment
-    client_creds = ClientCredentials()
-    client_creds.load_from_env()
+    client = ClientCreds()
+    client.load_from_env()
 
     # Load from json file
-    client_creds = ClientCredentials()
-    client_creds.load_from_json(path=<full/file/path>, name=<file\'s_name>)
+    client = ClientCreds()
+    client.load_from_json(path=<full/file/path>, name=<file\'s_name>)
 
-### 🎝🎶 Resources 🎶🎝
+## 🎶 Resources 🎶
 
     # User owned resources
-    client.get_tracks():
-        pass
+    spt.user_tracks()
+    spt.user_playlists()
 
 
 ## Setup
@@ -90,11 +104,11 @@
 
 ## Testing
 
-### Unit test:
+### Unit tests:
 
     $ tox
 
-### Inttegration test:
+### Inttegration tests:
 
 1. Copy the `spt_keys_template.py` to a new file and call it `spt_keys.py` as this file will be automatically gitignored.
 2. Now you can safely save your keys there for testing purposes. Here's an example:
@@ -135,7 +149,7 @@
 
 ### Creds
 
-- ClientCredentials
+- ClientCreds
 
   - pickle()
   - save_as_json()
@@ -151,7 +165,7 @@
   - access_token
   - expiry
 
-- UserCredentials
+- UserCreds
 
   - pickle()
   - save_as_json()
@@ -165,7 +179,7 @@
   - user_id
   - state
 
-- Client
+- Spotify
 
   - client_creds
   - user_creds
@@ -173,6 +187,7 @@
   - oauth_uri
   - is_oauth_ready
   - is_active
+  - is_premium
   - build_user_credentials()
 
   - Resources....
