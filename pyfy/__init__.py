@@ -348,7 +348,7 @@ class Spotify:
             else:
                 user_creds = UserCreds(access_token=access_token)
         self._user_creds = user_creds
-        if self.user_creds is not None:
+        if self._user_creds is not None:
             # You shouldn't need to manually change this flag.from_token
             # It's bound to be equal to either the client_creds object or user_creds object depending on which was last authorized
             self._caller = self._user_creds

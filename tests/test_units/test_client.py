@@ -23,7 +23,6 @@ def test_client_instantiates_with_user_creds():
     u.load_from_env()
     spt = Spotify(user_creds=u, ensure_user_auth=False)
     assert spt.user_creds.access_token is not None
-    assert spt.user_creds.refresh_token is not None
 
     assert spt._caller == spt.user_creds
 
