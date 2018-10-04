@@ -23,7 +23,7 @@ from cachecontrol import CacheControlAdapter
 __name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
 __url__ = 'https://github.com/omarryhan/spyfy'
-__version_info__ = ('0', '0', '10')
+__version_info__ = ('0', '0', '11')
 __version__ = '.'.join(__version_info__)
 __author__ = 'Omar Ryhan'
 __author_email__ = 'omarryhan@gmail.com'
@@ -74,6 +74,7 @@ logger = logging.getLogger(__name__)
     ####################################################################### EXCEPTIONS ############################################################################
 
 class SpotifyError(Exception):
+    ''' Base error class for ApiError and AuthError '''
     def _build_super_msg(self, msg, http_res, http_req, e):
         if not http_req and not http_res and not e:
             return msg
@@ -112,7 +113,8 @@ class SpotifyError(Exception):
 
 
 class ApiError(SpotifyError):
-    ''' https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
+    ''' Raised when almost any error other than 401 is encountered
+     https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
@@ -124,7 +126,8 @@ class ApiError(SpotifyError):
 
 
 class AuthError(SpotifyError):
-''' https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
+''' Raised when a 401 or any Authentication error is encountered
+https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
@@ -305,7 +308,7 @@ class UserCreds(_Creds):
 
 
 class Spotify:
-    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
+    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=True, proxies={}, timeout=7,
                 max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
         '''
         Parameters:
@@ -657,6 +660,7 @@ class Spotify:
 ##### Playback
 
     def devices(self):
+        ''' Lists user's devices '''
         url = BASE_URI + '/me/player/devices'
         params = dict()
         r = Request(method='GET', url=self._build_full_url(url, params))
@@ -850,6 +854,7 @@ class Spotify:
 
     @_nullable_response
     def add_playlist_tracks(self, playlist_id, track_ids, position=None):
+        ''' track_ids can be a list of track ids or a string of one track_id'''
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
 
         # convert IDs to uris. WHY SPOTIFY :(( ?
@@ -874,7 +879,7 @@ class Spotify:
     @_nullable_response
     def delete_playlist_tracks(self, playlist_id, track_uris):
         ''' 
-        track_uris supported:
+        track_uris types supported:
         1) 'track_uri'
         2) ['track_uri', 'track_uri', 'track_uri']
         3) [
