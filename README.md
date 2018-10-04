@@ -25,11 +25,15 @@
 
 ## Quick Start
 
-    from pyfy import Spotify, UserCreds
+    from pyfy import Spotify
 
-    user = UserCreds(access_token='secret_access_token')
-    spt = Spotify(user_creds=user)
+    spt = Spotify('your_access_token')
+
+    spt.user_playlists()
     spt.play()
+    spt.volume(85)
+    spt.next()
+    spt.pause()
     json_search_results = spt.search(q='alice in chains them bones')
 
 ## Authentication and Authorization
