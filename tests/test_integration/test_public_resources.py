@@ -1,3 +1,6 @@
+def test_categories_usa(spotify_user_auth):
+    assert spotify_user_auth.categories(country='US')
+
 def test_album(spotify_user_auth, reise_reise_album_id, ritual_spirit_album_id):
     assert spotify_user_auth.albums(album_ids=[reise_reise_album_id, ritual_spirit_album_id])
 

@@ -23,7 +23,7 @@ from cachecontrol import CacheControlAdapter
 __name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
 __url__ = 'https://github.com/omarryhan/spyfy'
-__version_info__ = ('0', '0', '7')
+__version_info__ = ('0', '0', '8')
 __version__ = '.'.join(__version_info__)
 __author__ = 'Omar Ryhan'
 __author_email__ = 'omarryhan@gmail.com'
@@ -162,31 +162,6 @@ def _set_empty_client_creds_if_none(f):
     return wrapper
 
 
-def _require_user_id(*args, plural=None):
-    ''' wrapper that injects current user_id in a given method, given user has one and also given user doesn't pass one.
-    Set plural to true if the user_id parameter is user_ids '''
-    def outer_wrapper(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if plural is None:
-                argument_name = 'user_id'
-            elif plural is True:
-                argument_name = 'user_ids'
-            if kwargs.get(argument_name, None): # If user provided an ID, run thr function without changing anything
-                return f(*args, **kwargs)
-            self = args[0]
-            if not self.user_creds.user_id and self.user_creds.access_token:
-                id_ = self._request_user_id(self.user_creds)
-                self.user_creds.user_id = id_
-            if plural is True:
-                return f(*args, **kwargs, user_ids=self.user_creds.user_id) 
-            return f(*args, **kwargs, user_id=self.user_creds.user_id)
-        return wrapper
-    if plural is None and args:  # If decorator wasn't called, return default (user_id) not (user_ids)
-        return outer_wrapper(args[0])
-    return outer_wrapper
-
-
 def _safe_get(dct, *keys):
     for key in keys:
         try:
@@ -208,22 +183,19 @@ def _locale_injectable(argument_name, support_from_token=True):  # market or cou
                         injection = 'from_token'
                     else:
                         injection = self.me.get('country')  # For some reason, countries are often not returned by the API
-                    if argument_name == 'market':
-                        return f(*args, **kwargs, market=injection)
-                    elif argument_name == 'country':
-                        return f(*args, **kwargs, country=injection)
-                    else:
-                        raise TypeError('Market injectable parameter should be either market or country')
-                else:
-                    return f(*args, **kwargs)
-            else:
+                    kwargs[argument_name] = injection
+            try:
                 return f(*args, **kwargs)
+            except TypeError as e:
+                raise TypeError('Please note: When assigning locales i.e. \'market\' or \'country\'',
+                ' to this method,\nuse keyword arguments instead of positional arguments. e.g. market="US" insead of "US".\n',
+                'Original exception: {}'.format(e))
         return wrapper
     return outer_wrapper
 
 
 def _nullable_response(f):
-    ''' wrapper that return an empty dict instead of a None body, that causes json.loads to raise a ValueError (JSONDecodeError) '''
+    ''' wrapper that returns an empty dict instead of a None body. A None body causes json.loads to raise a ValueError (JSONDecodeError) '''
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
@@ -333,7 +305,7 @@ class UserCreds(_Creds):
 
 class Spotify:
     def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
-    max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
+                max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -347,6 +319,10 @@ class Spotify:
         # The two main credentials model
         self.client_creds = client_creds
         self._user_creds = user_creds
+        if user_creds is not None:
+            # You shouldn't need to manually change this flag.from_token
+            # It's bound to be equal to either the client_creds object or user_creds object depending on which was last authorized
+            self._caller = self._user_creds
 
         # Request defaults
         self.timeout = timeout
@@ -361,14 +337,9 @@ class Spotify:
         # Api defaults
         self.enforce_state_check = enforce_state_check
 
-        # You shouldn't need to manually change this flag.from_token
-        # It's bound to be equal to either the client_creds object or user_creds object depending on which was last authorized
-        self._caller = None
-
         self.ensure_user_auth = ensure_user_auth
         self.default_to_locale = default_to_locale
         if hasattr(user_creds, 'access_token') and ensure_user_auth:  # Attempt user authorization upon client instantiation
-            self._caller = self._user_creds
             self._check_authorization()
 
     def _create_session(self, max_retries, proxies, backoff_factor, cache):
@@ -804,16 +775,17 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_require_user_id(plural=True)
     def follows_playlist(self, playlist_id, user_ids=None):
+        if user_ids is None:
+            user_ids = self._request_user_id(user_creds=self.user_creds)
         url = BASE_URI + '/playlists/' + playlist_id + '/followers/contains'
         params = dict(ids=self._parametrize_list(user_ids))
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
     @_nullable_response
-    @_require_user_id
-    def create_playlist(self, name, user_id=None, description=None, public=False, collaborative=False):
+    def create_playlist(self, name, description=None, public=False, collaborative=False):
+        user_id = self._request_user_id(user_creds=self.user_creds)
         url = BASE_URI + '/users/' + user_id + '/playlists'
         params = {}
         data = dict(name=name, description=description, public=public, collaborative=collaborative)
