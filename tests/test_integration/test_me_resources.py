@@ -209,16 +209,3 @@ def test_me(spotify_user_auth):
 def test_user_profile(spotify_user_auth, john_smith_user_id):
     assert spotify_user_auth.user_profile(john_smith_user_id)
 
-###### Test misc
-
-def test_track_audio_analysis(spotify_user_auth, pound_cake_track_id):
-    spotify_user_auth.track_audio_analysis(pound_cake_track_id)
-
-def test_track_audio_feature(spotify_user_auth, pound_cake_track_id):
-    spotify_user_auth.tracks_audio_features(pound_cake_track_id)
-
-def test_tracks_audio_features(spotify_user_auth, pound_cake_track_id, gods_plan_track_id):
-    spotify_user_auth.tracks_audio_features([pound_cake_track_id, gods_plan_track_id])
-
-def test_search(spotify_user_auth):
-    spotify_user_auth.search('where\'s the revolution')

@@ -173,6 +173,33 @@ def _safe_get(dct, *keys):
             return None
     return dct
 
+def _get_key_recursively(response, key, limit):
+    ''' Recursively search for a key in a response 
+    Not really sure if that's the most elegant solution.'''
+    if response is None:
+        raise TypeError('Either provide a response or a URL for the next_page and previous_page methods')
+    
+    stack = [response]
+    iters_performed = 0
+    while iters_performed < limit and len(stack) > 0:
+        # Check if dicts have key in their top layer, if yes, return
+        for dct in stack:
+            key_found = dct.get(key)
+            if key_found is not None:
+                return key_found
+
+        # If not in current stack make a new stack with the second layer of each dict in the original stack
+        new_stack = []
+        for dct in stack:
+            for k , v in dct.items():
+                if type(v) == dict:
+                    new_stack.append(v)
+        
+        # Prepare for next iteration
+        stack = new_stack
+        iters_performed += 1
+    
+    return None  # if iterations don't give back results
 
 def _locale_injectable(argument_name, support_from_token=True):  # market or country
     ''' Injects user's locale if applicable. Only supports one input, either market or country (interchangeable values) '''
@@ -1138,6 +1165,29 @@ class Spotify:
         r = Request(method='GET', url=self._build_full_url(url, params))
         return self._send_authorized_request(r).json()
 
+    @_nullable_response
+    def next_page(self, response=None, url=None):
+        '''
+        You can provide either a response dict or a url
+        Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
+        '''
+        if url is None:
+            url = _get_key_recursively(response, 'next', 3)
+        if url is not None:
+            return self._send_authorized_request(Request(method='GET', url=url)).json()
+        return {}
+
+    @_nullable_response
+    def previous_page(self, response=None, url=None):
+        '''
+        You can provide either a response dict or a url
+        Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
+        '''
+        if url is None:
+            url = _get_key_recursively(response, 'previous', 3)
+        if url is not None:
+            return self._send_authorized_request(Request(method='GET', url=url)).json()
+        return {}
 
 ##### Personalization & Explore
 

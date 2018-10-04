@@ -1,3 +1,5 @@
+import pprint
+
 def test_categories_usa(spotify_user_auth):
     assert spotify_user_auth.categories(country='US')
 
@@ -54,3 +56,56 @@ def test_new_releases(spotify_user_auth):
 
 def test_recommendations(spotify_user_auth):
     assert spotify_user_auth.recommendations(market='US', seed_tracks='0c6xIDDpzE81m2q797ordA', min_energy=0.4, min_popularity=50)
+
+def test_track_audio_analysis(spotify_user_auth, pound_cake_track_id):
+    spotify_user_auth.track_audio_analysis(pound_cake_track_id)
+
+def test_track_audio_feature(spotify_user_auth, pound_cake_track_id):
+    spotify_user_auth.tracks_audio_features(pound_cake_track_id)
+
+def test_tracks_audio_features(spotify_user_auth, pound_cake_track_id, gods_plan_track_id):
+    spotify_user_auth.tracks_audio_features([pound_cake_track_id, gods_plan_track_id])
+
+def test_search(spotify_user_auth):
+    spotify_user_auth.search('where\'s the revolution')
+
+'''
+TODO: Write seperate unit tests for the recursive key grabber
+'''
+
+def test_next_search(spotify_user_auth):
+    result = spotify_user_auth.search('love', 'track', limit=2)
+    assert len(result) > 0
+    next_ = spotify_user_auth.next_page(result)
+    assert len(next_) > 0
+    next_2 = spotify_user_auth.next_page(next_)
+    assert next_ != next_2
+    assert len(next_2) > 0
+
+def test_previous_search(spotify_user_auth):
+    result = spotify_user_auth.search('stars', 'track', limit=2)
+    assert len(result) > 0
+    next_ = spotify_user_auth.next_page(result)
+    next_2 = spotify_user_auth.next_page(next_)
+    previous = spotify_user_auth.previous_page(next_2)
+    assert len(previous) > 0
+    assert previous == next_
+    assert len(previous) > 0
+
+def test_next_featured_playlists(spotify_user_auth):
+    result = spotify_user_auth.featured_playlists(limit=2)
+    assert len(result) > 0
+    next_ = spotify_user_auth.next_page(result)
+    assert len(next_) > 0
+
+def test_next_recently_played_tracks(spotify_user_auth):
+    result = spotify_user_auth.recently_played_tracks(limit=2)
+    assert len(result) > 0
+    next_ = spotify_user_auth.next_page(result)
+    assert len(next_) > 0
+
+def test_next_user_albums(spotify_user_auth):
+    result = spotify_user_auth.user_albums(limit=2)
+    assert len(result) > 0
+    next_ = spotify_user_auth.next_page(result)
+    assert len(next_) > 0

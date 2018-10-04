@@ -154,6 +154,8 @@
   - artist_albums()
   - album_tracks()
   - artist_top_tracks()
+  - next_page()
+  - previous_page()
 - Explore and Personalization:
   - available_genre_seeds()
   - categories()

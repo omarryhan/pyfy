@@ -20,7 +20,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     install_requires=requirements,
     tests_require=test_requirements,
-    url='https://github.com/omarryhan/spyfy',
+    url='https://github.com/omarryhan/pyfy',
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
