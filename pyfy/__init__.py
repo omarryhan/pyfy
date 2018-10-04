@@ -602,10 +602,10 @@ class Spotify:
         if not isinstance(query, dict) or not isinstance(url, str):
             raise TypeError('Queries must be an instance of a dict and url must be an instance of string in order to be properly encoded')
         # Remove bad params
-        bad_params = [None, tuple(), dict(), list()]
+        bad_types = [None, tuple(), dict(), list()]
         safe_query = {}
         for k, v in query.items():
-            if v not in bad_params:
+            if v not in bad_types:
                 if type(v) == bool:
                     v = json.dumps(v)
                 safe_query[k] = v
@@ -627,12 +627,15 @@ class Spotify:
     @staticmethod
     def _parametrize_list(list_):
         if type(list_) == list:
-            list_ = ','.join(list_)
+            return ','.join(list_)
         return list_
 
     @staticmethod
     def _is_single_resource(resource):
-        if isinstance(resource, str) or (type(resource) == list and len(resource) < 1) or type(resource) == int:  # if int, str or list with one item return True
+        single_types = [int, str, float]
+        if type(resource) in single_types:
+            return True
+        elif len(resource) == 1:
             return True
         return False
 
