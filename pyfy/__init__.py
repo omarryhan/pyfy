@@ -126,8 +126,8 @@ class ApiError(SpotifyError):
 
 
 class AuthError(SpotifyError):
-''' Raised when a 401 or any Authentication error is encountered
-https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
+    ''' Raised when a 401 or any Authentication error is encountered
+    https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
@@ -308,7 +308,7 @@ class UserCreds(_Creds):
 
 
 class Spotify:
-    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=True, proxies={}, timeout=7,
+    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
                 max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
         '''
         Parameters:
