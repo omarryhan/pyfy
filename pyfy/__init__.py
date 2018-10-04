@@ -74,7 +74,6 @@ logger = logging.getLogger(__name__)
     ####################################################################### EXCEPTIONS ############################################################################
 
 class SpotifyError(Exception):
-    ''' RFC errors https://tools.ietf.org/html/rfc6749#section-5.2 '''
     def _build_super_msg(self, msg, http_res, http_req, e):
         if not http_req and not http_res and not e:
             return msg
@@ -85,20 +84,20 @@ class SpotifyError(Exception):
                 http_req.url, pprint.pformat(body),
                 pprint.pformat(http_req.headers)
             )
-        elif getattr(http_res, 'status_code', None) == 401 and http_req:  # If unauthorized, only show headers
+        elif getattr(http_res, 'status_code', None) == 401 and http_req:
             return '\nError msg: {}\nHTTP Error: {}.\nRequest headers: {}'.format(
                 msg,
                 http_res.status_code,
                 pprint.pformat(http_req.headers)
             )
-        elif getattr(http_res, 'status_code', None) == 403 and http_req:  # If bad request or not found, show url and data
+        elif getattr(http_res, 'status_code', None) == 403 and http_req:
             body = http_req.data or http_req.json
             return '\nError msg: {}\nHTTP Error: 403-Forbidden\nRequest URL: {}\nRequest body: {}\nRequest headers: {}'.format(
                 msg,
                 http_req.url, pprint.pformat(body),
                 pprint.pformat(http_req.headers)
             )
-        elif getattr(http_res, 'status_code', None) == 404 and http_req:  # If bad request or not found, show url and data
+        elif getattr(http_res, 'status_code', None) == 404 and http_req:
             body = http_req.data or http_req.json
             return '\nError msg: {}\nHTTP Error: 404-Resource not found\nRequest URL: {}\nRequest body: {}'.format(
                 msg,
@@ -113,8 +112,8 @@ class SpotifyError(Exception):
 
 
 class ApiError(SpotifyError):
+    ''' https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
-        ''' https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
         self.msg = msg
         self.http_response = http_response
         self.http_request = http_request
@@ -125,7 +124,7 @@ class ApiError(SpotifyError):
 
 
 class AuthError(SpotifyError):
-    ''' https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
+''' https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
@@ -136,6 +135,7 @@ class AuthError(SpotifyError):
         super(AuthError, self).__init__(super_msg)
 
     ####################################################################### HELPERS & WRAPPERS ############################################################################
+
 
 def _create_secret(bytes_length=32):
     return secrets.base64.standard_b64encode(secrets.token_bytes(bytes_length)).decode('utf-8')
@@ -172,14 +172,14 @@ def _safe_get(dct, *keys):
 
 
 def _locale_injectable(argument_name, support_from_token=True):  # market or country
-    ''' Injects user's locale if applicable. Only supports one input, either market or country (interchangeable) '''
+    ''' Injects user's locale if applicable. Only supports one input, either market or country (interchangeable values) '''
     def outer_wrapper(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             if kwargs.get(argument_name) is None:  # If user didn't assign to the parameter, inject
                 self = args[0]
                 if self.default_to_locale is True and self._caller == self.user_creds:  # if caller is a user not client.
-                    if support_from_token:  # some endpoints do not support 'from_token' as a country/market parameter. EDIT: apparently it's working now. I'm keeping it anyway
+                    if support_from_token:  # some endpoints do not support 'from_token' as a country/market parameter.
                         injection = 'from_token'
                     else:
                         injection = self.me.get('country')  # For some reason, countries are often not returned by the API
@@ -188,7 +188,7 @@ def _locale_injectable(argument_name, support_from_token=True):  # market or cou
                 return f(*args, **kwargs)
             except TypeError as e:
                 raise TypeError('Please note: When assigning locales i.e. \'market\' or \'country\'',
-                ' to this method,\nuse keyword arguments instead of positional arguments. e.g. market="US" insead of "US".\n',
+                ' to this method,use keyword arguments instead of positional arguments. e.g. market="US" insead of "US".',
                 'Original exception: {}'.format(e))
         return wrapper
     return outer_wrapper
@@ -303,6 +303,7 @@ class UserCreds(_Creds):
 
     ####################################################################### CLIENT ############################################################################
 
+
 class Spotify:
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
                 max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
@@ -315,6 +316,9 @@ class Spotify:
             timeout: Seconds before request raises a timeout error
             max_retries: Max retries before a request fails
             enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
+            backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
+            default_to_locale: Will pass methods decorated with @locale_injecteable the user's locale if available.
+            cache: Whether or not to cache HTTP requests for the user
         '''
         # Credentials models
         self.client_creds = client_creds
@@ -443,7 +447,7 @@ class Spotify:
     @property
     @_set_empty_user_creds_if_none
     def oauth_uri(self):
-        ''' Generate OAuth URI for authentication '''
+        ''' Generate OAuth2 URI for authentication '''
         params = {
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
@@ -461,7 +465,7 @@ class Spotify:
 
     @property
     def is_active(self):
-        ''' Check if user_creds are valid '''
+        ''' Checks if user_creds or client_creds are valid (depending on who was last set) '''
         if self._caller is None:
             return False
         try:
@@ -493,11 +497,13 @@ class Spotify:
 
     @_set_empty_user_creds_if_none
     def build_user_creds(self, grant, state=None, set_user_creds=True):
-        ''' Second part of OAuth authorization code flow, Raises an AuthError if unauthorized
+        '''
+        Second part of OAuth authorization code flow, Raises an AuthError if unauthorized
+        Parameters:
             - grant: Code returned to user after authorizing your application
             - state: State returned from oauth callback
             - set_user_creds: Whether or not to set the user created to the client as the current active user
-            '''
+        '''
         # Check for equality of states
         if state is not None:
             if state != getattr(self.user_creds, 'state', None):
@@ -563,6 +569,7 @@ class Spotify:
 
     @staticmethod
     def convert_from_iso_date(date):
+        ''' utility method that can convert dates returned from Spotify's API '''
         if not isinstance(date, datetime.datetime):
             raise TypeError('date must be of type datetime.datetime')
         return datetime.date.fromisoformat(date)

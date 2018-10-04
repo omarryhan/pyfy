@@ -48,7 +48,7 @@
 
     from pyfy import ClientCreds, Spotify
 
-    client = ClientCreds(client_id=client_id, client_secred=client_secret)
+    client = ClientCreds(client_id=client_id, client_secret=client_secret)
     spt = Spotify(client_creds=client)
     spt.authorize_client_creds()
 
@@ -58,7 +58,7 @@
 
     client = ClientCreds(client_id='clientid', client_secret='client_secret')
     spt = Spotify(client)
-    
+
     def authorize():
         # Fist step of OAuth, Redirect user to spotify's authorization endpoint
         if spt.is_oauth_ready:
