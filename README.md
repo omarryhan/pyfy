@@ -2,12 +2,11 @@
   <img src="https://newsroom.spotify.com/media/mediakit/2018-03-19_22-28-43/Spotify_Logo_CMYK_Green.png" alt="Logo" style="width:700px;"/>
   <p align="center">
     <a href="https://travis-ci.org/omarryhan/Pyfy"><img alt="Build Status" src="https://travis-ci.org/omarryhan/Pyfy.svg?branch=master"></a>
-    <a href="https://github.com/omarryhan/flask-stateless-auth"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="https://github.com/omarryhan/Pyfy"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
   </p>
 </p>
 
 # Spotify Web API Wrapper
-## ** BETA **
 
 
 ## Features
@@ -64,7 +63,7 @@
     # Authorization callback
     def callback(grant):
         try:
-            user_creds = spt.build_credentials(grant=grant, set_user=True)
+            user_creds = spt.build_credentials(grant=grant)
         except AuthError as e:
             abort(401)
             logging.info(e.msg)
@@ -93,75 +92,73 @@
 
 ## 🎶 Resources
 
-- Resources:
-  - Tracks:
-    - tracks()
-    - user_tracks()
-    - delete_tracks()
-    - owns_tracks()
-    - save_tracks()
-    - user_top_tracks
-  - Albums:
-    - albums()
-    - user_albums()
-    - delete_albums()
-    - owns_albums()
-    - save_albums()
-  - Artists:
-    - artists()
-    - followed_artists()
-    - artist_top_tracks()
-    - artist_related_artists()
-    - follow_artists()       
-    - follows_artists()
-    - user_top_artists
-  - Playlists:
-    - playlist()
-    - user_playlists()
-    - unfollow_playlist()
-    - delete_playlist()
-    - follow_playlist()
-    - follows_playlist()
-    - create_playlist()
-    - delete_playlist()
-    - playlist_tracks()):
-    - add_playlist_tracks()
-    - delete_playlist_tracks()
-    - reorder_playlist_track()
-    - update_playlist()
-  - Users:
-    - follows_users()
-    - unfollow_users()
-    - follow_users()       
-    - user_profile()
-    - me
-    - is_premium
-  - Playback:
-    - recently_played_tracks()
-    - currently_playing_info()
-    - currently_playing()
-    - devices()
-    - previous()
-    - pause()
-    - play()
-    - repeat()
-    - seek()
-    - shuffle()
-    - playback_transfer()
-    - volume() device
-  - Others:
-    - artist_albums()
-    - album_tracks()
-    - search()
-  - Explore and Personalization:
-    - available_genre_seeds()
-    - categories()
-    - category_playlist()
-    - featured_playlists()
-    - new_releases()
-    - recommendations()
-    - track_audio_analysis()
-    - tracks_audio_features()
+- Playback:
+  - devices()
+  - play()
+  - pause()
+  - repeat()
+  - seek()
+  - previous()
+  - shuffle()
+  - recently_played_tracks()
+  - currently_playing_info()
+  - currently_playing()
+  - playback_transfer()
+  - volume()
+- Playlists:
+  - playlist()
+  - user_playlists()
+  - follows_playlist()
+  - follow_playlist()
+  - create_playlist()
+  - update_playlist()
+  - unfollow_playlist()
+  - delete_playlist()
+- Playlist Contents:
+  - playlist_tracks():
+  - add_playlist_tracks()
+  - reorder_playlist_track()
+  - delete_playlist_tracks()
+- Tracks:
+  - tracks()
+  - user_tracks()
+  - owns_tracks()
+  - save_tracks()
+  - delete_tracks()
+  - user_top_tracks()
+- Albums:
+  - albums()
+  - user_albums()
+  - owns_albums()
+  - save_albums()
+  - delete_albums()
+- Artists:
+  - artists()
+  - followed_artists()
+  - follows_artists()
+  - follow_artists()
+  - artist_related_artists()
+- Users:
+  - me
+  - is_premium
+  - user_profile()
+  - follows_users()
+  - unfollow_users()
+  - follow_users()       
+- Others:
+  - user_top_artists()
+  - artist_albums()
+  - album_tracks()
+  - artist_top_tracks()
+- Explore and Personalization:
+  - available_genre_seeds()
+  - categories()
+  - category_playlist()
+  - featured_playlists()
+  - new_releases()
+  - search()
+  - recommendations()
+  - tracks_audio_features()
 
 ## Installation and Setup
 
@@ -173,7 +170,7 @@
 
     $ tox
 
-### Inttegration tests:
+### Integration tests:
 
 1. Copy the `spt_keys_template.py` to a new file and call it `spt_keys.py` as this file will be automatically gitignored.
 2. Now you can safely save your keys there for testing purposes. Here's an example:
@@ -187,7 +184,7 @@
     *this will run some tests using your client ID, client secret, access token and user ID<br>
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
     *The tests will carefully teardown all resources created<br>
-    *Integration tests will not be abusive to the API and should only test for successfull integration with minimum API calls<br>
+    *Integration tests will not be abusive to the API and should only test for successful integration with minimum API calls<br>
     *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth.py`<br>
     *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) documentiation instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
@@ -254,7 +251,7 @@
   - is_oauth_ready
   - is_active
   - is_premium
-  - build_user_credentials()
+  - build_user_creds()
 
   - Resources....
 

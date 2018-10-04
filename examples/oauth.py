@@ -4,7 +4,7 @@ import webbrowser
 
 from flask import Flask, redirect, abort, request, jsonify, url_for
 
-from pyfy import Client, ClientCredentials, UserCredentials, AuthError
+from pyfy import Spotify, ClientCreds, UserCreds, AuthError
 try:
     from spt_keys import KEYS
 except:
@@ -12,18 +12,18 @@ except:
 
 app = Flask(__name__)
 
-client = Client()
-client_creds = ClientCredentials()
+spt = Spotify()
+client = ClientCreds()
 
 @app.route('/authorize')
 def authorize():
     export_keys()
-    client_creds.load_from_env()
-    client.client_creds = client_creds
-    if client.is_oauth_ready:
-        return redirect(client.oauth_uri)
+    client.load_from_env()
+    spt.client_creds = client
+    if spt.is_oauth_ready:
+        return redirect(spt.oauth_uri)
     else:
-        return jsonify({'error_description': 'Client doesn\'nt have enough attributes to handle OAauth authorization flow authentication'}), 500
+        return jsonify({'error_description': 'Client needs client_id, client_secret and a redirect uri in order to handle OAauth properly'}), 500
 
 
 @app.route('/callback/spotify')  # You have to register this callback
@@ -34,7 +34,7 @@ def spotify_callback():
         grant = request.args.get('code')
         state = request.args.get('state')
         try:
-            user_creds = client.build_user_credentials(grant=grant, state=state, update_user_creds=True)  # Default is to update the client's user_creds object
+            user_creds = spt.build_user_creds(grant=grant, state=state)
         except AuthError as e:
             return jsonify(dict(error_description=e.msg)), e.code
         else:
@@ -47,16 +47,17 @@ def spotify_callback():
 def is_active():
     return jsonify(
         dict(
-            is_active=client.is_active,
+            is_active=spt.is_active,
             your_tracks=url_for('tracks', _external=True),
             your_playlists=url_for('playlists', _external=True)
         )
-    )    
+    )
+
 
 @app.route('/dump_creds')
 def dump_creds():
     # TODO: save both client and user creds and send to user as json files to downlaod
-    return 'Not Implemented', 200
+    return 'Not Implemented'
 
 @app.route('/')
 def index():
@@ -65,13 +66,13 @@ def index():
 
 @app.route('/tracks')
 def tracks():
-    return jsonify(client.tracks)
+    return jsonify(spt.user_tracks())
 
 
 @app.route('/playlists')
 def playlists():
-    return jsonify(client.playlists)
-    
+    return jsonify(spt.user_playlists())
+
 
 def export_keys():
     for k, v in KEYS.items():
@@ -83,5 +84,3 @@ def export_keys():
 if __name__ == '__main__':
     webbrowser.open_new_tab('http://127.0.0.1:5000/authorize')
     app.run(host='127.0.0.1', port=5000, debug=True)
-    #webapp = Thread(target=lambda: app.run(host='127.0.0.1', port=9872, debug=True))
-    #webapp.start()

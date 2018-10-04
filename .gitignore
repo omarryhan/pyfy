@@ -1,9 +1,7 @@
 *spt_keys.py
-old*
-.vscode*
-.directory*
-.pypirc*
-
+*.vscode
+*.directory
+*.pypirc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

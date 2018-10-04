@@ -12,12 +12,12 @@ import datetime
 from time import sleep
 from urllib import parse
 from functools import wraps
+from urllib3.util import Retry
 from json.decoder import JSONDecodeError
 
 from requests import Request, Session, Response
 from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util import Retry
 
 __name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
@@ -35,7 +35,7 @@ __all__ = [
     'AuthError',
     'ClientCreds',
     'UserCreds',
-    'Client'
+    'Spotify'
 ]
 
 try:
@@ -43,7 +43,6 @@ try:
 except:
     DEFAULT_FILENAME_BASE = 'Spotify_'
 TOKEN_EXPIRED_MSG = 'The access token expired'  # Msg sent back when token is expired
-_DEBUG = False  # If true, client will log every request and response in a pretty printed format
 BASE_URI = 'https://api.spotify.com/v1'
 OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 OAUTH_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
@@ -70,8 +69,6 @@ ALL_SCOPES = [
 
 
 logger = logging.getLogger(__name__)
-if _DEBUG:
-    logger.setLevel(logging.DEBUG)
 
 
 # TODO: Implement cache https://developer.spotify.com/documentation/web-api/#conditional-requests
@@ -128,6 +125,7 @@ class ApiError(SpotifyError):
         self.http_request = http_request
         self.code = getattr(http_response, 'status_code', None)
         super_msg = self._build_super_msg(msg, http_response, http_request, e)
+        logger.error(super_msg)
         super(ApiError, self).__init__(super_msg)
 
 
@@ -139,6 +137,7 @@ class AuthError(SpotifyError):
         self.http_request = http_request
         self.code = getattr(http_response, 'status_code', None)
         super_msg = self._build_super_msg(msg, http_response, http_request, e)
+        logger.error(super_msg)
         super(AuthError, self).__init__(super_msg)
 
     ####################################################################### HELPERS & WRAPPERS ############################################################################
@@ -209,7 +208,7 @@ def _locale_injectable(argument_name, support_from_token=True):  # market or cou
         def wrapper(*args, **kwargs):
             if kwargs.get(argument_name) is None:  # If user didn't assign to the parameter, inject
                 self = args[0]
-                if self.default_to_local_country is True and self._caller == self.user_creds:  # if caller is a user not client.
+                if self.default_to_locale is True and self._caller == self.user_creds:  # if caller is a user not client.
                     if support_from_token:  # some endpoints do not support 'from_token' as a country/market parameter. EDIT: apparently it's working now. I'm keeping it anyway
                         injection = 'from_token'
                     else:
@@ -338,7 +337,7 @@ class UserCreds(_Creds):
     ####################################################################### CLIENT ############################################################################
 
 class Spotify:
-    def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_local_country=True):
+    def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -365,7 +364,7 @@ class Spotify:
         self._caller = None
 
         self.ensure_user_auth = ensure_user_auth
-        self.default_to_local_country = default_to_local_country
+        self.default_to_locale = default_to_locale
         if hasattr(user_creds, 'access_token') and ensure_user_auth:  # Attempt user authorization upon client instantiation
             self._caller = self._user_creds
             self._check_authorization()
@@ -395,25 +394,18 @@ class Spotify:
 
     def _send_request(self, r):
         prepped = r.prepare()
-        if _DEBUG:
-            #pprint.pprint({'REQUEST': r.__dict__})
-            logger.debug(pprint.pformat({'REQUEST': r.__dict__}))
         try:
             res = self._session.send(prepped, timeout=self.timeout)
-            if _DEBUG:
-                #pprint.pprint({'RESPONSE': res.__dict__})
-                logger.debug(pprint.pformat({'RESPONSE': res.__dict__}))
             res.raise_for_status()
         except Timeout as e:
             raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=None, http_request=r, e=e)
         except HTTPError as e:
-            #if res.status_code == 429:  # If too many requests
             if res.status_code == 401:
                 if res.json().get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
                     old_auth_header = r.headers['Authorization']
                     self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
-                    assert new_auth_header != old_auth_header  # Assert header is changed to avoid 
+                    assert new_auth_header != old_auth_header  # Assert header is changed to avoid infinite loops
                     r.headers.update(new_auth_header)
                     return self._send_request(r)
                 else:
@@ -517,12 +509,11 @@ class Spotify:
         self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    def build_user_credentials(self, grant, state=None, set_user_creds=True, update_user_creds=True, fetch_user_id=True):
-        ''' Second part of OAuth authorization code flow, Raises an
+    def build_user_creds(self, grant, state=None, set_user_creds=True):
+        ''' Second part of OAuth authorization code flow, Raises an AuthError if unauthorized
+            - grant: Code returned to user after authorizing your application
             - state: State returned from oauth callback
             - set_user_creds: Whether or not to set the user created to the client as the current active user
-            - update_user_creds: If set to yes, it will update the attributes of the client's current user if set. Else, it will overwrite the existing one. Must have set_user_creds as True.
-            - fetch_user_id: if yes, it will call the /me endpoint and try to fetch the user id, which will be needed to fetch user owned resources
             '''
         # Check for equality of states
         if state is not None:
@@ -535,19 +526,9 @@ class Spotify:
         user_creds_json = self._request_user_creds(grant).json()
         user_creds_model = self._user_json_to_object(user_creds_json)
 
-        # Update user id
-        if fetch_user_id:
-            id_ = self._request_user_id(user_creds_model)
-            user_creds_model.user_id = id_
-
-        # Update user creds
-        if update_user_creds and set_user_creds:
-            self._update_user_creds_with(user_creds_model)
-            return self.user_creds
-
         # Set user creds
         if set_user_creds:
-            return self.user_creds
+            self.user_creds = user_creds_model
         return user_creds_model
 
     def _request_user_creds(self, grant):
@@ -570,11 +551,6 @@ class Spotify:
     def _update_user_creds_with(self, user_creds_object):
         for key, value in user_creds_object.__dict__.items():
             if value is not None:
-                #if isinstance(value, dict) and isinstance(getattr(self.user_creds, key), dict):  # if dicts, merge
-                #    setattr(self.user_creds, key, {**getattr(self.user_creds, key), **value})
-                #elif isinstance(value, list) and isinstance(getattr(self.user_creds, key), list):  # if lists, extend
-                #    getattr(self.user_creds, key).extend(value)
-                #else:
                 setattr(self.user_creds, key, value)
 
     @_set_empty_client_creds_if_none
@@ -685,9 +661,126 @@ class Spotify:
 
     ####################################################################### RESOURCES ############################################################################
 
-    def _user_playlists(self, limit=None, offset=None):
-        url = BASE_URI + '/me/playlists'
-        params = dict(limit=limit, offset=offset)
+##### Playback
+
+    def devices(self):
+        url = BASE_URI + '/me/player/devices'
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def play(self, resource_id=None, resource_type='track', device_id=None, offset_position=None, position_ms=None):
+        ''' Available types: 'track', 'artist', 'playlist', 'podcast', 'user' not sure if there's more'''
+        url = BASE_URI + '/me/player/play'
+        if resource_id and resource_type:
+            context_uri = 'spotify:' + resource_type + ':' + resource_id
+            if resource_type == 'track':
+                data = self._json_safe_dict(dict(uris=list(context_uri), position_ms=position_ms))
+            else:
+                params = dict(device_id=device_id)
+                data = self._json_safe_dict(dict(context_uri=context_uri, position_ms=position_ms))
+                if offset_position:
+                    offset_data = self._json_safe_dict(dict(position=offset_position))
+                    if offset_data:
+                        data['offset'] = offset_data
+        else:
+            params = dict(device_id=device_id)
+            data = {}
+        '''
+            {
+                'context_uri': context_uri, # or uris: [context_uris]
+                'offset': {
+                    'position': offset_position
+                },
+                'position_ms': position_ms
+            }
+        '''
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def pause(self, device_id=None):
+        url = BASE_URI + '/me/player/pause'
+        params = dict(device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_locale_injectable('market')
+    def currently_playing(self, market=None):
+        url = BASE_URI + '/me/player/currently-playing'
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_locale_injectable('market')
+    def currently_playing_info(self, market=None):
+        url = BASE_URI + '/me/player'
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def recently_played_tracks(self, limit=None, after=None, before=None):
+        url = BASE_URI + '/me/player/recently-played'
+        params = dict(type='track', limit=limit, after=after, before=before)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def next(self, device_id=None):
+        url = BASE_URI + '/me/player/next'
+        params = dict(device_id=device_id)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def previous(self, device_id=None):
+        url = BASE_URI + '/me/player/previous'
+        params = dict(device_id=device_id)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def repeat(self, state='context', device_id=None):
+        url = BASE_URI + '/me/player/repeat'
+        params = dict(state=state, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def seek(self, position_ms, device_id=None):
+        url = BASE_URI + '/me/player/seek'
+        params = dict(position_ms=position_ms, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def shuffle(self, state=True, device_id=None):
+        url = BASE_URI + '/me/player/shuffle'
+        params = dict(state=state, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def playback_transfer(self, device_ids):
+        url = BASE_URI + '/me/player'
+        params = {}
+        data = self._json_safe_dict(dict(device_ids=self._parametrize_list(device_ids)))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def volume(self, volume_percent, device_id=None):
+        url = BASE_URI + '/me/player/volume'
+        params = dict(volume_percent=volume_percent, device_id=device_id)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+##### Playlists
+
+    @_locale_injectable('market')
+    def playlist(self, playlist_id, market=None, fields=None):
+        url = BASE_URI + '/playlists/' + playlist_id
+        params = dict(market=market, fields=fields)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
@@ -699,29 +792,148 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def user_albums(self, limit=None, offset=None):
-        url = BASE_URI + '/me/albums'
+    def _user_playlists(self, limit=None, offset=None):
+        url = BASE_URI + '/me/playlists'
         params = dict(limit=limit, offset=offset)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
+
+    @_require_user_id(plural=True)
+    def follows_playlist(self, playlist_id, user_ids=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/followers/contains'
+        params = dict(ids=self._parametrize_list(user_ids))
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    @_require_user_id
+    def create_playlist(self, name, user_id=None, description=None, public=False, collaborative=False):
+        url = BASE_URI + '/users/' + user_id + '/playlists'
+        params = {}
+        data = dict(name=name, description=description, public=public, collaborative=collaborative)
+        r = Request(method='POST', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def follow_playlist(self, playlist_id, public=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/followers'
+        params = {}
+        data = self._json_safe_dict(dict(public=public))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def update_playlist(self, playlist_id, name=None, description=None, public=None, collaborative=False):
+        url = BASE_URI + '/playlists/' + playlist_id
+        params = {}
+        data = dict(name=name, description=description, public=public, collaborative=collaborative)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        r.headers.update(self._json_content_type_header)
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def unfollow_playlist(self, playlist_id):
+        url = BASE_URI + '/playlists/' + playlist_id + '/followers'
+        params = {}
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def delete_playlist(self, playlist_id):
+        ''' an alias to unfollow_playlist''' 
+        return self.unfollow_playlist(playlist_id)
+
+
+##### Playlist Contents
+
+    
+    @_locale_injectable('market')
+    def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = dict(market=market, fields=fields, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def add_playlist_tracks(self, playlist_id, track_ids, position=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+
+        # convert IDs to uris. WHY SPOTIFY :(( ?
+        if type(track_ids) == str:
+            track_ids = [track_ids]
+        new_list = []
+        for track_id in track_ids:
+            new_list.append('spotify:track:' + track_id)
+
+        params = dict(position=position, uris=self._parametrize_list(new_list))
+        r = Request(method='POST', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def reorder_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None):
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = {}
+        data = dict(range_start=range_start, range_length=range_length, insert_before=insert_before)
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def delete_playlist_tracks(self, playlist_id, track_uris):
+        ''' 
+        track_uris supported:
+        1) 'track_uri'
+        2) ['track_uri', 'track_uri', 'track_uri']
+        3) [
+            {
+                'uri': track_uri,
+                'positions': [
+                    position1, position2
+                ]
+            },
+            {
+                'uri': track_uri,
+                'positions': position1
+            },
+            track_uri
+        ]
+        '''
+        # https://developer.spotify.com/console/delete-playlist-tracks/
+        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
+        params = {}
+        if type(track_uris) == str:
+            track_uris = list(track_uris)
+        if type(track_uris) == list:
+            data = {
+                'tracks': []
+            }
+            for track_uri in track_uris:
+                if type(track_uri) == str:
+                    data['tracks'].append(
+                        {
+                            'uri': 'spotify:track:' + track_uri
+                        }
+                    )
+                elif type(track_uri) == dict:
+                    positions = track_uri.get('positions')
+                    if type(positions) == str or int:
+                        positions = [positions]
+                    data['tracks'].append(
+                        {
+                            'uri': 'spotify:track:' + track_uri['uri'],
+                            'positions': positions
+                        }
+                    )
+        else:
+            raise TypeError('track_uris must be an instance of list or string')
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params), json=data)
+        return self._send_authorized_request(r).json()
+
+##### Tracks
 
     @_locale_injectable('market')
     def user_tracks(self, market=None, limit=None, offset=None):
         url = BASE_URI + '/me/tracks'
         params = dict(market=market, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_locale_injectable('market')
-    def playlist(self, playlist_id, market=None, fields=None):
-        url = BASE_URI + '/playlists/' + playlist_id
-        params = dict(market=market, fields=fields)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def _track(self, track_id, market=None):
-        url = BASE_URI + '/tracks/' + track_id
-        params = dict(market=market)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
@@ -734,11 +946,33 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def _artist(self, artist_id):
-        url = BASE_URI + '/artists/' + artist_id
-        params = dict()
+    def _track(self, track_id, market=None):
+        url = BASE_URI + '/tracks/' + track_id
+        params = dict(market=market)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
+
+    def owns_tracks(self, track_ids):
+        url = BASE_URI + '/me/tracks/contains'
+        params = dict(ids=self._parametrize_list(track_ids))
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def save_tracks(self, track_ids):
+        url = BASE_URI + '/me/tracks'
+        params = dict(ids=self._parametrize_list(track_ids))
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def delete_tracks(self, track_ids):
+        url = BASE_URI + '/me/tracks'
+        params = dict(ids=self._parametrize_list(track_ids))
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+##### Artists
 
     def artists(self, artist_ids):
         if self._is_single_resource(artist_ids):
@@ -748,33 +982,37 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def _album(self, album_id, market=None):
-        url = BASE_URI + '/albums/' + album_id
-        params = dict(market=market)
+    def _artist(self, artist_id):
+        url = BASE_URI + '/artists/' + artist_id
+        params = dict()
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_locale_injectable('market')
-    def albums(self, album_ids, market=None):
-        if self._is_single_resource(album_ids):
-            return self._album(self._parametrize_list(album_ids), market)
-        url = BASE_URI + '/albums'
-        params = dict(ids=self._parametrize_list(album_ids), market=market)
+    @_nullable_response
+    def followed_artists(self, after=None, limit=None):
+        url = BASE_URI + '/me/following'
+        params = dict(type='artist', after=after, limit=limit)
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_locale_injectable('market')
-    def album_tracks(self, album_id, market=None, limit=None, offset=None):
-        url = BASE_URI + '/albums/' + album_id + '/tracks'
-        params = dict(market=market, limit=limit, offset=offset)
+    def follows_artists(self, artist_ids):
+        url = BASE_URI + '/me/following/contains'
+        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    @_locale_injectable('market')
-    def artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None):
-        url = BASE_URI + '/artists/' + artist_id + '/albums'
-        params = dict(include_groups=include_groups, market=market, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+    @_nullable_response
+    def follow_artists(self, artist_ids):       
+        url = BASE_URI + '/me/following'
+        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def unfollow_artists(self, artist_ids):
+        url = BASE_URI + '/me/following'
+        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
     def artist_related_artists(self, artist_id):
@@ -790,9 +1028,119 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
-    def available_genre_seeds(self):
-        r = Request(method='GET', url=BASE_URI + '/recommendations/available-genre-seeds')
+##### Albums
+
+    @_locale_injectable('market')
+    def albums(self, album_ids, market=None):
+        if self._is_single_resource(album_ids):
+            return self._album(self._parametrize_list(album_ids), market)
+        url = BASE_URI + '/albums'
+        params = dict(ids=self._parametrize_list(album_ids), market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
+
+    def _album(self, album_id, market=None):
+        url = BASE_URI + '/albums/' + album_id
+        params = dict(market=market)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def user_albums(self, limit=None, offset=None):
+        url = BASE_URI + '/me/albums'
+        params = dict(limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def owns_albums(self, album_ids):
+        url = BASE_URI + '/me/albums/contains'
+        params = dict(ids=self._parametrize_list(album_ids))
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def save_albums(self, album_ids):
+        url = BASE_URI + '/me/albums'
+        params = dict(ids=self._parametrize_list(album_ids))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def delete_albums(self, album_ids):
+        url = BASE_URI + '/me/albums'
+        params = dict(ids=self._parametrize_list(album_ids))
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+##### Users
+
+    @property
+    def me(self):
+        url = BASE_URI + '/me'
+        r = Request(method='GET', url=url)
+        return self._send_authorized_request(r).json()
+
+    @property
+    def is_premium(self):
+        if self.me.get('type') == 'premium':
+            return True
+        return False
+
+    def user_profile(self, user_id):
+        url = BASE_URI + '/users/' + user_id
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def follows_users(self, user_ids):
+        url = BASE_URI + '/me/following/contains'
+        params = dict(type='user', ids=self._parametrize_list(user_ids))
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_nullable_response
+    def follow_users(self, user_ids):       
+        url = BASE_URI + '/me/following'
+        params = dict(type='user', ids=self._parametrize_list(user_ids))
+        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json() 
+
+    @_nullable_response
+    def unfollow_users(self, user_ids):
+        url = BASE_URI + '/me/following'
+        params = dict(type='user', ids=self._parametrize_list(user_ids))
+        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+##### Others
+
+    @_locale_injectable('market')
+    def album_tracks(self, album_id, market=None, limit=None, offset=None):
+        url = BASE_URI + '/albums/' + album_id + '/tracks'
+        params = dict(market=market, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_locale_injectable('market')
+    def artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None):
+        url = BASE_URI + '/artists/' + artist_id + '/albums'
+        params = dict(include_groups=include_groups, market=market, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def user_top_tracks(self, time_range=None, limit=None, offset=None):
+        url = BASE_URI + '/me/top/tracks'
+        params = dict(time_range=time_range, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def user_top_artists(self, time_range=None, limit=None, offset=None):
+        url = BASE_URI + '/me/top/artists'
+        params = dict(time_range=time_range, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+
+##### Personalization & Explore
 
     @_locale_injectable('country', support_from_token=False)
     def category(self, category_id, country=None, locale=None):
@@ -815,6 +1163,10 @@ class Spotify:
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
+    def available_genre_seeds(self):
+        r = Request(method='GET', url=BASE_URI + '/recommendations/available-genre-seeds')
+        return self._send_authorized_request(r).json()
+
     @_locale_injectable('country', support_from_token=False)
     def featured_playlists(self, country=None, locale=None, timestamp=None, limit=None, offset=None):
         if isinstance(timestamp, datetime.datetime):
@@ -828,6 +1180,34 @@ class Spotify:
     def new_releases(self, country=None, limit=None, offset=None):
         url = BASE_URI + '/browse/new-releases'
         params = dict(country=country, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    @_locale_injectable('market')
+    def search(self, q, types='track', market=None, limit=None, offset=None):
+        ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
+        url = BASE_URI + '/search'
+        params = dict(q=q, type=self._parametrize_list(types), market=market, limit=limit, offset=offset)
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def track_audio_analysis(self, track_id):
+        url = BASE_URI + '/audio-analysis/' + track_id
+        params = {}
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def _track_audio_features(self, track_id):
+        url = BASE_URI + '/audio-features/' + track_id
+        params = dict()
+        r = Request(method='GET', url=self._safe_add_query_param(url, params))
+        return self._send_authorized_request(r).json()
+
+    def tracks_audio_features(self, track_ids):
+        if self._is_single_resource(track_ids):
+            return self._track_audio_features(self._parametrize_list(track_ids))
+        url = BASE_URI + '/audio-features'
+        params = dict(ids=self._parametrize_list(track_ids))
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
 
@@ -935,386 +1315,3 @@ class Spotify:
         )
         r = Request(method='GET', url=self._safe_add_query_param(url, params))
         return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def unfollow_artists(self, artist_ids):
-        url = BASE_URI + '/me/following'
-        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def unfollow_users(self, user_ids):
-        url = BASE_URI + '/me/following'
-        params = dict(type='user', ids=self._parametrize_list(user_ids))
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def unfollow_playlist(self, playlist_id):
-        url = BASE_URI + '/playlists/' + playlist_id + '/followers'
-        params = {}
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def followed_artists(self, after=None, limit=None):
-        url = BASE_URI + '/me/following'
-        params = dict(type='artist', after=after, limit=limit)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def follows_users(self, user_ids):
-        url = BASE_URI + '/me/following/contains'
-        params = dict(type='user', ids=self._parametrize_list(user_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def follows_artists(self, artist_ids):
-        url = BASE_URI + '/me/following/contains'
-        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_require_user_id(plural=True)
-    def follows_playlist(self, playlist_id, user_ids=None):
-        url = BASE_URI + '/playlists/' + playlist_id + '/followers/contains'
-        params = dict(ids=self._parametrize_list(user_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def follow_artists(self, artist_ids):       
-        url = BASE_URI + '/me/following'
-        params = dict(type='artist', ids=self._parametrize_list(artist_ids))
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def follow_users(self, user_ids):       
-        url = BASE_URI + '/me/following'
-        params = dict(type='user', ids=self._parametrize_list(user_ids))
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json() 
-
-    @_nullable_response
-    def follow_playlist(self, playlist_id, public=None):
-        url = BASE_URI + '/playlists/' + playlist_id + '/followers'
-        params = {}
-        data = self._json_safe_dict(dict(public=public))
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def delete_albums(self, album_ids):
-        url = BASE_URI + '/me/albums'
-        params = dict(ids=self._parametrize_list(album_ids))
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def delete_tracks(self, track_ids):
-        url = BASE_URI + '/me/tracks'
-        params = dict(ids=self._parametrize_list(track_ids))
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def owns_albums(self, album_ids):
-        url = BASE_URI + '/me/albums/contains'
-        params = dict(ids=self._parametrize_list(album_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def owns_tracks(self, track_ids):
-        url = BASE_URI + '/me/tracks/contains'
-        params = dict(ids=self._parametrize_list(track_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def save_albums(self, album_ids):
-        url = BASE_URI + '/me/albums'
-        params = dict(ids=self._parametrize_list(album_ids))
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def save_tracks(self, track_ids):
-        url = BASE_URI + '/me/tracks'
-        params = dict(ids=self._parametrize_list(track_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def user_top_tracks(self, time_range=None, limit=None, offset=None):
-        url = BASE_URI + '/me/top/tracks'
-        params = dict(time_range=time_range, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def user_top_artists(self, time_range=None, limit=None, offset=None):
-        url = BASE_URI + '/me/top/artists'
-        params = dict(time_range=time_range, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def recently_played_tracks(self, limit=None, after=None, before=None):
-        url = BASE_URI + '/me/player/recently-played'
-        params = dict(type='track', limit=limit, after=after, before=before)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_locale_injectable('market')
-    def currently_playing_info(self, market=None):
-        url = BASE_URI + '/me/player'
-        params = dict(market=market)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_locale_injectable('market')
-    def currently_playing(self, market=None):
-        url = BASE_URI + '/me/player/currently-playing'
-        params = dict(market=market)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def devices(self):
-        url = BASE_URI + '/me/player/devices'
-        params = dict()
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def next(self, device_id=None):
-        url = BASE_URI + '/me/player/next'
-        params = dict(device_id=device_id)
-        r = Request(method='POST', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-    
-    @_nullable_response
-    def previous(self, device_id=None):
-        url = BASE_URI + '/me/player/previous'
-        params = dict(device_id=device_id)
-        r = Request(method='POST', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def pause(self, device_id=None):
-        url = BASE_URI + '/me/player/pause'
-        params = dict(device_id=device_id)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def play(self, resource_id=None, resource_type='track', device_id=None, offset_position=None, position_ms=None):
-        ''' Available types: 'track', 'artist', 'playlist', 'podcast', 'user' not sure if there's more'''
-        url = BASE_URI + '/me/player/play'
-        if resource_id and resource_type:
-            context_uri = 'spotify:' + resource_type + ':' + resource_id
-            if resource_type == 'track':
-                data = self._json_safe_dict(dict(uris=list(context_uri), position_ms=position_ms))
-            else:
-                params = dict(device_id=device_id)
-                data = self._json_safe_dict(dict(context_uri=context_uri, position_ms=position_ms))
-                if offset_position:
-                    offset_data = self._json_safe_dict(dict(position=offset_position))
-                    if offset_data:
-                        data['offset'] = offset_data
-        else:
-            params = dict(device_id=device_id)
-            data = {}
-        '''
-            {
-                'context_uri': context_uri, # or uris: [context_uris]
-                'offset': {
-                    'position': offset_position
-                },
-                'position_ms': position_ms
-            }
-        '''
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def repeat(self, state='context', device_id=None):
-        url = BASE_URI + '/me/player/repeat'
-        params = dict(state=state, device_id=device_id)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def seek(self, position_ms, device_id=None):
-        url = BASE_URI + '/me/player/seek'
-        params = dict(position_ms=position_ms, device_id=device_id)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def shuffle(self, state=True, device_id=None):
-        url = BASE_URI + '/me/player/shuffle'
-        params = dict(state=state, device_id=device_id)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def playback_transfer(self, device_ids):
-        url = BASE_URI + '/me/player'
-        params = {}
-        data = self._json_safe_dict(dict(device_ids=self._parametrize_list(device_ids)))
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=data)
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def volume(self, volume_percent, device_id=None):
-        url = BASE_URI + '/me/player/volume'
-        params = dict(volume_percent=volume_percent, device_id=device_id)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    @_require_user_id
-    def create_playlist(self, name, user_id=None, description=None, public=False, collaborative=False):
-        url = BASE_URI + '/users/' + user_id + '/playlists'
-        params = {}
-        data = dict(name=name, description=description, public=public, collaborative=collaborative)
-        r = Request(method='POST', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def delete_playlist(self, playlist_id):
-        ''' an alias to unfollow_playlist''' 
-        return self.unfollow_playlist(playlist_id)
-    
-    @_locale_injectable('market')
-    def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
-        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
-        params = dict(market=market, fields=fields, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def add_playlist_tracks(self, playlist_id, track_ids, position=None):
-        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
-
-        # convert IDs to uris. WHY SPOTIFY :(( ?
-        if type(track_ids) == str:
-            track_ids = [track_ids]
-        new_list = []
-        for track_id in track_ids:
-            new_list.append('spotify:track:' + track_id)
-
-        params = dict(position=position, uris=self._parametrize_list(new_list))
-        r = Request(method='POST', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def delete_playlist_tracks(self, playlist_id, track_uris):
-        ''' 
-        track_uris supported:
-        1) 'track_uri'
-        2) ['track_uri', 'track_uri', 'track_uri']
-        3) [
-            {
-                'uri': track_uri,
-                'positions': [
-                    position1, position2
-                ]
-            },
-            {
-                'uri': track_uri,
-                'positions': position1
-            },
-            track_uri
-        ]
-        '''
-        # https://developer.spotify.com/console/delete-playlist-tracks/
-        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
-        params = {}
-        if type(track_uris) == str:
-            track_uris = list(track_uris)
-        if type(track_uris) == list:
-            data = {
-                'tracks': []
-            }
-            for track_uri in track_uris:
-                if type(track_uri) == str:
-                    data['tracks'].append(
-                        {
-                            'uri': 'spotify:track:' + track_uri
-                        }
-                    )
-                elif type(track_uri) == dict:
-                    positions = track_uri.get('positions')
-                    if type(positions) == str or int:
-                        positions = [positions]
-                    data['tracks'].append(
-                        {
-                            'uri': 'spotify:track:' + track_uri['uri'],
-                            'positions': positions
-                        }
-                    )
-        else:
-            raise TypeError('track_uris must be an instance of list or string')
-        r = Request(method='DELETE', url=self._safe_add_query_param(url, params), json=data)
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def reorder_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None):
-        url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
-        params = {}
-        data = dict(range_start=range_start, range_length=range_length, insert_before=insert_before)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
-        return self._send_authorized_request(r).json()
-
-    @_nullable_response
-    def update_playlist(self, playlist_id, name=None, description=None, public=None, collaborative=False):
-        url = BASE_URI + '/playlists/' + playlist_id
-        params = {}
-        data = dict(name=name, description=description, public=public, collaborative=collaborative)
-        r = Request(method='PUT', url=self._safe_add_query_param(url, params), json=self._json_safe_dict(data))
-        r.headers.update(self._json_content_type_header)
-        return self._send_authorized_request(r).json()
-
-    @_locale_injectable('market')
-    def search(self, q, types='track', market=None, limit=None, offset=None):
-        ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
-        url = BASE_URI + '/search'
-        params = dict(q=q, type=self._parametrize_list(types), market=market, limit=limit, offset=offset)
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def track_audio_analysis(self, track_id):
-        url = BASE_URI + '/audio-analysis/' + track_id
-        params = {}
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def _track_audio_features(self, track_id):
-        url = BASE_URI + '/audio-features/' + track_id
-        params = dict()
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def tracks_audio_features(self, track_ids):
-        if self._is_single_resource(track_ids):
-            return self._track_audio_features(self._parametrize_list(track_ids))
-        url = BASE_URI + '/audio-features'
-        params = dict(ids=self._parametrize_list(track_ids))
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    def user_profile(self, user_id):
-        url = BASE_URI + '/users/' + user_id
-        params = dict()
-        r = Request(method='GET', url=self._safe_add_query_param(url, params))
-        return self._send_authorized_request(r).json()
-
-    @property
-    def me(self):
-        url = BASE_URI + '/me'
-        r = Request(method='GET', url=url)
-        return self._send_authorized_request(r).json()
-
-    @property
-    def is_premium(self):
-        if self.me.get('type') == 'premium':
-            return True
-        return False
