@@ -6,7 +6,7 @@
   </p>
 </p>
 
-# Spotify Web API Wrapper
+# Spotify's Web API Wrapper
 
 
 ## Features
