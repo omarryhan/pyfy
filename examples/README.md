@@ -10,6 +10,6 @@
   
 ### Asuming you git cloned the project and you're in its root dir, run:
 
-    $pip install pyfy flask && python examples/oauth.py
+    $pip install pyfy flask && python examples/oauth2.py
 
 - The example will guide you through Spotify's OAuth2 authorization code flow and let you download your credentials as a json file

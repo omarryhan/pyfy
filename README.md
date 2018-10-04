@@ -34,22 +34,21 @@
 
 ## Authentication and Authorization
 
-### 1. By Client Credentials:  *[get from here](https://developer.spotify.com/dashboard/applications)
+### 1. By User's Access Token: *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
+
+    from pyfy import Spotify
+
+    spt = Spotify('your access token')
+
+### 2. With Client Credentials Flow (OAauth2):  *[get from here](https://developer.spotify.com/dashboard/applications)
 
     from pyfy import ClientCreds, Spotify
 
     client = ClientCreds(client_id=client_id, client_secred=client_secret)
-    spt = Spotify(client)
+    spt = Spotify(client_creds=client)
     spt.authorize_client_creds()
 
-### 2. By User's Access Token: *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
-
-    from pyfy import Spotify, UserCreds
-
-    user = UserCreds(access_token='user\'s access token')
-    spt = Spotify(user_creds=user)
-
-### 3. With Authorization code flow (OAuth2)
+### 3. With Authorization Code Flow (OAuth2) *[example here](https://github.com/omarryhan/Pyfy/tree/master/examples)
 
     from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
 
@@ -186,7 +185,7 @@
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
     *The tests will carefully teardown all resources created<br>
     *Integration tests will not be abusive to the API and should only test for successful integration with minimum API calls<br>
-    *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth.py`<br>
+    *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth2.py`<br>
     *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
         $ tox
