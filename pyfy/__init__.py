@@ -18,11 +18,12 @@ from json.decoder import JSONDecodeError
 from requests import Request, Session, Response
 from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
 from requests.adapters import HTTPAdapter
+from cachecontrol import CacheControlAdapter
 
 __name__ = 'pyfy'
 __about__ = "Lightweight python wrapper for Spotify's web API"
 __url__ = 'https://github.com/omarryhan/spyfy'
-__version_info__ = ('0', '0', '5b')
+__version_info__ = ('0', '0', '6b')
 __version__ = '.'.join(__version_info__)
 __author__ = 'Omar Ryhan'
 __author_email__ = 'omarryhan@gmail.com'
@@ -67,14 +68,8 @@ ALL_SCOPES = [
     'user-read-recently-played'
 ]
 
-
 logger = logging.getLogger(__name__)
 
-
-# TODO: Implement cache https://developer.spotify.com/documentation/web-api/#conditional-requests
-# TODO: Check client._caller flow
-# TODO: Test client always raises an error if not http 2**
-# TODO: Revoke token
 
     ####################################################################### EXCEPTIONS ############################################################################
 
@@ -337,7 +332,8 @@ class UserCreds(_Creds):
     ####################################################################### CLIENT ############################################################################
 
 class Spotify:
-    def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7, max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True):
+    def __init__(self, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
+    max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -354,7 +350,13 @@ class Spotify:
 
         # Request defaults
         self.timeout = timeout
-        self._session = self._create_session(max_retries, proxies, backoff_factor)
+        # Save session attributes for when the user changes
+        self.max_retries = max_retries
+        self.proxies = proxies
+        self.backoff_factor = backoff_factor
+        self.cache = cache
+        # create session
+        self._session = self._create_session(max_retries, proxies, backoff_factor, cache)
 
         # Api defaults
         self.enforce_state_check = enforce_state_check
@@ -369,12 +371,15 @@ class Spotify:
             self._caller = self._user_creds
             self._check_authorization()
 
-    def _create_session(self, max_retries, proxies, backoff_factor):
+    def _create_session(self, max_retries, proxies, backoff_factor, cache):
         sess = Session()
         # Retry only on idemportent requests and only when too many requests
         retries = Retry(total=max_retries, backoff_factor=backoff_factor, status_forcelist=[429], method_whitelist=['GET', 'UPDATE', 'DELETE'])
-        http_adapter = HTTPAdapter(max_retries=retries)
-        sess.mount('http://', http_adapter)
+        retries_adapter = HTTPAdapter(max_retries=retries)
+        if cache:
+            cache_adapter = CacheControlAdapter(cache_etags=True)
+        sess.mount('http://', retries_adapter)
+        sess.mount('http://', cache_adapter)
         sess.proxies.update(proxies)  
         return sess
 
@@ -447,7 +452,8 @@ class Spotify:
 
     @user_creds.setter
     def user_creds(self, user_creds):
-        ''' if user is set, do: '''
+        self._session.close()
+        self._session = self._create_session(self.max_retries, self.proxies, self.backoff_factor, self.cache)
         self._user_creds = user_creds
         self._caller = self._user_creds
         if self.ensure_user_auth:

@@ -21,6 +21,7 @@
 - Fit for both production and experimental/personal environments
 - Able to automatically default to user's locales
 - Neatly handles type conversions when necessary
+- Support for http caching
 
 ## Quick Start
 
@@ -181,12 +182,12 @@
     5. `PYFY_TEST_INTEGRATION` = true
 3. Run:
 
-    *this will run some tests using your client ID, client secret, access token and user ID<br>
+    *This will run some tests using your client ID, client secret and access token.<br>
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
     *The tests will carefully teardown all resources created<br>
     *Integration tests will not be abusive to the API and should only test for successful integration with minimum API calls<br>
     *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth.py`<br>
-    *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) documentiation instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
+    *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
         $ tox
 

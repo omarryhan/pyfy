@@ -3,6 +3,7 @@ def test_album(spotify_user_auth, reise_reise_album_id, ritual_spirit_album_id):
 
 def test_albums(spotify_user_auth, reise_reise_album_id):
     assert spotify_user_auth.albums(reise_reise_album_id)
+    assert spotify_user_auth.albums(reise_reise_album_id)
 
 def test_track(spotify_user_auth, sonne_track_id):
     assert spotify_user_auth.tracks(sonne_track_id)
