@@ -21,7 +21,7 @@
 - Fit for both production and experimental/personal environments
 - Able to automatically default to user's locales
 - Neatly handles type conversions when necessary
-- Support for http caching
+- Support for HTTP caching
 
 ## Quick Start
 
