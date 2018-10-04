@@ -163,7 +163,7 @@
 
 ## Installation and Setup
 
-    $ pip install -U --no-cache-dir pyfy
+    $ pip install -U pyfy
 
 ## Testing
 
