@@ -70,7 +70,7 @@ def test_search(spotify_user_auth):
     spotify_user_auth.search('where\'s the revolution')
 
 '''
-TODO: Write seperate unit tests for the recursive key grabber
+TODO: Write seperate unit tests for the get_key_recursively_method()
 '''
 
 def test_next_search(spotify_user_auth):
