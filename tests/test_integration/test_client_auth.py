@@ -4,7 +4,6 @@ import requests
 
 from pyfy import ALL_SCOPES, AuthError, ClientCreds
 
-
 def test_integration_tests_discovered():
     assert True
 
