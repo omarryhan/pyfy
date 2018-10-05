@@ -1,7 +1,8 @@
 import pytest
 from pytest import fixture
 
-from pyfy import Spotify, ClientCreds, UserCreds, _safe_get
+from pyfy import Spotify, ClientCreds, UserCreds
+from pyfy.utils import _safe_get
 
 @fixture(scope='function')
 def spotify():

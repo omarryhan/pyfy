@@ -2,7 +2,8 @@ import datetime
 
 import pytest
 
-from pyfy import ClientCreds, UserCreds, _Creds
+from pyfy import ClientCreds, UserCreds
+from pyfy.creds import _Creds
 
 
 def test_creds_loaded_from_env(user_creds_from_env, client_creds_from_env):
