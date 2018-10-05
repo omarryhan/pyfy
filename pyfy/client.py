@@ -3,7 +3,6 @@ import base64
 import logging
 import warnings
 import datetime
-from time import sleep
 from urllib import parse
 from urllib3.util import Retry
 
@@ -12,7 +11,13 @@ from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
 from requests.adapters import HTTPAdapter
 from cachecontrol import CacheControlAdapter
 
-from .creds import _Creds, ClientCreds, UserCreds, ALL_SCOPES, _set_empty_client_creds_if_none, _set_empty_user_creds_if_none
+from .creds import (
+    ClientCreds,
+    UserCreds,
+    ALL_SCOPES,
+    _set_empty_client_creds_if_none,
+    _set_empty_user_creds_if_none
+)
 from .excs import SpotifyError, ApiError, AuthError
 from .utils import (
     _create_secret,
@@ -97,7 +102,10 @@ class Spotify:
         return sess
 
     def _check_authorization(self):
-        ''' checks whether the credentials provided are valid or not by making and api call that requires no scope but still requires authorization '''
+        '''
+        Checks whether the credentials provided are valid or not by making and api call that requires no scope but still requires authorization
+        '''
+
         test_url = BASE_URI + '/search?' + parse.urlencode(dict(q='Hey spotify am I authorized', type='artist'))  # Hey%20spotify%2C%20am%20I%20authorized%3F&type=artist'
         try:
             self._send_authorized_request(Request(method='GET', url=test_url))
@@ -139,12 +147,14 @@ class Spotify:
         ''' https://developer.spotify.com/documentation/general/guides/authorization-guide/ 
             Authorize with client credentials oauth flow i.e. Only with client secret and client id.
             This will give you limited functionality '''
+
         if client_creds:
             if self.client_creds:
                 warnings.warn('Overwriting existing client_creds object')
             self.client_creds = client_creds
         if not self.client_creds or not self.client_creds.client_id or not self.client_creds.client_secret:
             raise AuthError('No client credentials set')
+
         data = {'grant_type': 'client_credentials'}
         headers = self._client_authorization_header
         try:
@@ -179,7 +189,9 @@ class Spotify:
     @property
     @_set_empty_user_creds_if_none
     def oauth_uri(self):
-        ''' Generate OAuth2 URI for authentication '''
+        '''
+        Generate OAuth2 URI for authentication
+        '''
         params = {
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
@@ -197,7 +209,9 @@ class Spotify:
 
     @property
     def is_active(self):
-        ''' Checks if user_creds or client_creds are valid (depending on who was last set) '''
+        '''
+        Checks if user_creds or client_creds are valid (depending on who was last set)
+        '''
         if self._caller is None:
             return False
         try:
