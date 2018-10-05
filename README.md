@@ -192,7 +192,7 @@
     *The tests will carefully teardown all resources created<br>
     *Integration tests will not be abusive to the API and should only test for successful integration with minimum API calls<br>
     *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth2.py`<br>
-    *Use [the documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
+    *Use the [documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
         $ tox
 
@@ -263,5 +263,9 @@
 
 ## Contribute
 
-- Would be nice if someone can write some documentations. Maybe using Sphynx?
+- Would be nice if someone can write some documentations. Maybe using Sphinx?
 - More unit and integration tests
+
+## Contributors
+
+- 

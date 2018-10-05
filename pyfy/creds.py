@@ -1,8 +1,9 @@
 import os
 import json
-import pickle
 import socket
+import pickle
 import datetime
+from functools import wraps
 
 from .utils import _create_secret
 
@@ -44,7 +45,7 @@ class _Creds:
         with open(path, 'wb') as creds_file:
             pickle.dump(self, creds_file, pickle.HIGHEST_PROTOCOL)
 
-    # Unpickling doesn't work by setting an instance's (self) to an output of one of its own methods. Apparently, the method must be external 
+    # Unpickling doesn't work by setting an instance's (self) to the output of one of its own methods. Apparently, the method must be external 
     #def unpickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
     #    if name is None:
     #        name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
@@ -125,3 +126,23 @@ class UserCreds(_Creds):
     def load_from_env(self):
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']
         self.refresh_token = os.getenv('SPOTIFY_REFRESH_TOKEN', None)
+
+def _set_empty_user_creds_if_none(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if self.user_creds is None:
+            self._user_creds = UserCreds()
+        self._caller = self.user_creds
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def _set_empty_client_creds_if_none(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if self.client_creds is None:
+            self.client_creds = ClientCreds()
+        return f(*args, **kwargs)
+    return wrapper

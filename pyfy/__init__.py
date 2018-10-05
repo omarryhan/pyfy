@@ -1,17 +1,12 @@
 import os
 import sys
 import json
-import socket
 import base64
-import pprint
-import pickle
-import secrets
 import logging
 import warnings
 import datetime
 from time import sleep
 from urllib import parse
-from functools import wraps
 from urllib3.util import Retry
 
 from requests import Request, Session, Response
@@ -19,7 +14,8 @@ from requests.exceptions import HTTPError, Timeout, ProxyError, RetryError
 from requests.adapters import HTTPAdapter
 from cachecontrol import CacheControlAdapter
 
-from .exceptions import SpotifyError, ApiError, AuthError
+from .creds import _Creds, ClientCreds, UserCreds, ALL_SCOPES, _set_empty_client_creds_if_none, _set_empty_user_creds_if_none
+from .excs import SpotifyError, ApiError, AuthError
 from .utils import (
     _create_secret,
     _safe_get,
@@ -31,7 +27,6 @@ from .utils import (
     _comma_join_list,
     _is_single_resource
 )
-from .creds import _Creds, ClientCreds, UserCreds, ALL_SCOPES
 
 
 __name__ = 'pyfy'
@@ -61,27 +56,6 @@ OAUTH_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
 
 
 logger = logging.getLogger(__name__)
-
-
-def _set_empty_user_creds_if_none(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        self = args[0]
-        if self.user_creds is None:
-            self._user_creds = UserCreds()
-        self._caller = self.user_creds
-        return f(*args, **kwargs)
-    return wrapper
-
-
-def _set_empty_client_creds_if_none(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        self = args[0]
-        if self.client_creds is None:
-            self.client_creds = ClientCreds()
-        return f(*args, **kwargs)
-    return wrapper
 
 
 class Spotify:
@@ -134,7 +108,7 @@ class Spotify:
 
     def _create_session(self, max_retries, proxies, backoff_factor, cache):
         sess = Session()
-        # Retry only on idemportent requests and only when too many requests
+        # Retry only on idempotent methods and only when too many requests
         retries = Retry(total=max_retries, backoff_factor=backoff_factor, status_forcelist=[429], method_whitelist=['GET', 'UPDATE', 'DELETE'])
         retries_adapter = HTTPAdapter(max_retries=retries)
         if cache:
@@ -328,7 +302,8 @@ class Spotify:
             if value is not None:
                 setattr(self.client_creds, key, value)
 
-    def _user_json_to_object(self, json_response):
+    @staticmethod
+    def _user_json_to_object(json_response):
         return UserCreds(
             access_token=json_response['access_token'],
             scopes=json_response['scope'].split(' '),
@@ -575,7 +550,7 @@ class Spotify:
 
 ##### Playlist Contents
 
-    
+
     @_locale_injectable('market')
     def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
