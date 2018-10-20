@@ -76,7 +76,6 @@ class AsyncSpotify(BaseClient):
         if me:
             self._populate_user_creds(me)
 
-
     def _create_session(self, cache=None, proxies=None, backoff_factor=None, max_retries=None):
         ''' Warning: Creating a client session outside of a coroutine is a very dangerous idea. See:
         https://github.com/aio-libs/aiohttp/pull/3078/commits/34b3520bc9966ee4ec41b70257960e01d86d5978 '''
@@ -96,8 +95,8 @@ class AsyncSpotify(BaseClient):
     async def _send_request(self, r):
         # workaround to support setting instance specific timeouts and maxretries
         return await backoff.on_exception(
-            wait_gen=backoff.expo,
-            exception=TimeoutError,  # Not sure why this isn't working properly???
+            wait_gen=lambda: backoff.expo(factor=self.backoff_factor),
+            exception=(TimeoutError, asyncio.TimeoutError),  # Not sure why this isn't working properly???
             max_tries=self.max_retries,
             max_time=self.timeout
         )(self._handle_send_request)(r)
@@ -110,12 +109,10 @@ class AsyncSpotify(BaseClient):
         json = r.get('json')
         try:
             async with self.Session() as sess:
-                logger.critical(r.__dict__)
                 res = await sess.request(url=url, headers=headers, data=data, json=None, method=method, proxy=self.proxies, proxy_auth=self.proxy_auth)
             res.raise_for_status()
         except ClientResponseError as e:
             res = await _resolve_async_response(res)
-            logger.critical(res.__dict__)
             if res.status_code == 401:
                 if res.json.get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
                     old_auth_header = r['headers']['Authorization']
