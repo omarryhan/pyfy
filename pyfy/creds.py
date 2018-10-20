@@ -122,6 +122,7 @@ class UserCreds(_Creds):
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
         self.state = state
+        self.country = None
 
     def load_from_env(self):
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']

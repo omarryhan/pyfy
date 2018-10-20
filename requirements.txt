@@ -1,3 +1,6 @@
 requests
 requests[socks]
 cachecontrol
+aiohttp
+cchardet
+aiodns  # Sometimes causes problems with tox

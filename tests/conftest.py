@@ -2,7 +2,7 @@ import pytest
 from pytest import fixture
 
 from pyfy import Spotify, ClientCreds, UserCreds
-from pyfy.utils import _safe_get
+from pyfy.utils import _safe_getitem
 
 @fixture(scope='function')
 def spotify():
@@ -61,6 +61,28 @@ def spotify_client_auth():
     yield spotify
 
 #================================================================== Stubs ===================================================================#
+
+@fixture
+def me_stub():
+    return {
+        "birthdate": "1900-01-01",
+        "country": "US",
+        "display_name": "someone",
+        "email": "someone@gmail.com",
+        "external_urls": {
+            "spotify": "https://open.spotify.com/user/asdmiapdsmoand"
+        },
+        "followers": {
+            "href": "null",
+            "total": 8
+        },
+        "href": "https://api.spotify.com/v1/users/asdonaisdnaiusdnai",
+        "id": "asdoijoijasdijaojsd",
+        "images": [],
+        "product": "premium",
+        "type": "user",
+        "uri": "spotify:user:oofnvasdasyduj2bhasdasdasd"
+    }
 
 @fixture
 def cover_me_track_id():
@@ -176,5 +198,5 @@ def new_playlist_name():
 @fixture(scope='function')
 def new_playlist_id(spotify_user_auth, new_playlist_name):
     for playlist in spotify_user_auth.user_playlists()['items']: 
-        if _safe_get(playlist, 'name') == new_playlist_name:
-            return _safe_get(playlist, 'id')
+        if _safe_getitem(playlist, 'name') == new_playlist_name:
+            return _safe_getitem(playlist, 'id')
