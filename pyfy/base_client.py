@@ -59,8 +59,6 @@ class BaseClient:
             cache: Whether or not to cache HTTP requests for the user
         '''
 
-        self._caller = None
-
         # Credentials models
         self.client_creds = client_creds
 
@@ -80,7 +78,7 @@ class BaseClient:
         self.enforce_state_check = enforce_state_check
         self.ensure_user_auth = ensure_user_auth
         self.default_to_locale = default_to_locale
-        self.populate_user_creds_ = populate_user_creds
+        self._populate_user_creds_ = populate_user_creds
 
         # Set User
         if access_token is not None:

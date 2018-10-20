@@ -141,8 +141,12 @@ class AsyncSpotify(BaseClient):
     # Rewrite those
     async def follows_playlist(self, playlist_id, user_ids=None, **kwargs):
         if user_ids is None:
-            if not getattr(self.user_creds, 'id'):
-                user_ids = await self.me.get('id')
+            if getattr(self.user_creds, 'id', None) is None:
+                if self._populate_user_creds_:
+                    await self.populate_user_creds()
+                    user_ids = getattr(self.user_creds, 'id')
+                else:
+                    user_ids = await self.me.get('id')
             else:
                 user_ids = self.user_creds.id  
         r =  self._prep_follows_playlist(playlist_id, user_ids)
@@ -151,9 +155,13 @@ class AsyncSpotify(BaseClient):
     # Rewrite those
     @_nullable_response
     async def create_playlist(self, name, description=None, public=False, collaborative=False, **kwargs):
-        if not getattr(self.user_creds, 'id'):
-            user_id = await self.me.get('id')
+        if getattr(self.user_creds, 'id', None) is None:
+            if self._populate_user_creds_:
+                await self.populate_user_creds()
+                user_id = getattr(self.user_creds, 'id')
+            else:
+                user_id = await self.me.get('id')
         else:
             user_id = self.user_creds.id  
-        r = self._prep_create_playlist(name, description, public, collaborative)
+        r = self._prep_create_playlist(name, user_id, description, public, collaborative)
         return self._send_authorized_request(r).json()

@@ -310,8 +310,12 @@ class Spotify(BaseClient):
 
     def follows_playlist(self, playlist_id, user_ids=None, **kwargs):
         if user_ids is None:
-            if not getattr(self.user_creds, 'id'):
-                user_ids = self.me.get('id')
+            if getattr(self.user_creds, 'id', None) is None:
+                if self._populate_user_creds_:
+                    self.populate_user_creds()
+                    user_ids = getattr(self.user_creds, 'id')
+                else:
+                    user_ids = self.me.get('id')
             else:
                 user_ids = self.user_creds.id            
         r = self._prep_follows_playlist(playlist_id, user_ids)
@@ -319,10 +323,14 @@ class Spotify(BaseClient):
 
     @_nullable_response
     def create_playlist(self, name, description=None, public=False, collaborative=False, **kwargs):
-        if not getattr(self.user_creds, 'id'):
-            user_id = self.me.get('id')
+        if getattr(self.user_creds, 'id', None) is None:
+            if self._populate_user_creds_:
+                self.populate_user_creds()
+                user_id = getattr(self.user_creds, 'id')
+            else:
+                user_id = self.me.get('id')
         else:
-            user_id = self.user_creds.id
+            user_id = self.user_creds.id  
         r = self._prep_create_playlist(name, user_id, description, public, collaborative)
         return self._send_authorized_request(r).json()
 
