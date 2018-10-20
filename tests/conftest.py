@@ -1,7 +1,7 @@
 import pytest
 from pytest import fixture
 
-from pyfy import Spotify, ClientCreds, UserCreds
+from pyfy import Spotify, ClientCreds, UserCreds, AsyncSpotify
 from pyfy.utils import _safe_getitem
 
 @fixture(scope='function')
@@ -48,9 +48,9 @@ def spotify_user_auth():
     spotify._caller = spotify.user_creds
     yield spotify
 
-@fixture(scope='function')
-def spotify_client_auth():
-    spotify = Spotify()
+@fixture(scope='session')
+def async_spotify_user_auth():
+    spotify = AsyncSpotify()
     user_creds = UserCreds()
     client_creds = ClientCreds()
     client_creds.load_from_env()
@@ -58,6 +58,24 @@ def spotify_client_auth():
     spotify.client_creds = client_creds
     spotify.user_creds = user_creds
     spotify._caller = spotify.user_creds
+    yield spotify
+
+@fixture(scope='function')
+def spotify_client_auth():
+    spotify = Spotify()
+    client_creds = ClientCreds()
+    client_creds.load_from_env()
+    spotify.client_creds = client_creds
+    spotify._caller = spotify.client_creds
+    yield spotify
+
+@fixture(scope='function')
+def async_spotify_client_auth():
+    spotify = AsyncSpotify()
+    client_creds = ClientCreds()
+    client_creds.load_from_env()
+    spotify.client_creds = client_creds
+    spotify._caller = spotify.client_creds
     yield spotify
 
 #================================================================== Stubs ===================================================================#

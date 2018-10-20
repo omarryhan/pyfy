@@ -72,7 +72,6 @@ class Spotify(BaseClient):
         if me:
             self._populate_user_creds(me)
 
-
     def _create_session(self, max_retries, proxies, backoff_factor, cache):
         sess = Session()
         # Retry only on idempotent methods and only when too many requests
@@ -107,7 +106,7 @@ class Spotify(BaseClient):
             res = self._session.send(prepped, timeout=self.timeout)
             res.raise_for_status()
         except Timeout as e:
-            raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=None, http_request=r, e=e)
+            raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=Response(), http_request=r, e=e)
         except HTTPError as e:
             if res.status_code == 401:
                 if res.json().get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
@@ -131,17 +130,8 @@ class Spotify(BaseClient):
             Authorize with client credentials oauth flow i.e. Only with client secret and client id.
             This will give you limited functionality '''
 
-        if client_creds:
-            if self.client_creds:
-                warnings.warn('Overwriting existing client_creds object')
-            self.client_creds = client_creds
-        if not self.client_creds or not self.client_creds.client_id or not self.client_creds.client_secret:
-            raise AuthError('No client credentials set')
-
-        data = {'grant_type': 'client_credentials'}
-        headers = self._client_authorization_header
+        r = self._prep_authorize_client_creds(client_creds)
         try:
-            r = Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
             res = self._send_request(r)
         except ApiError as e:
             raise AuthError(msg='Failed to authenticate with client credentials', http_response=e.http_response, http_request=r, e=e)
@@ -175,14 +165,8 @@ class Spotify(BaseClient):
             raise AuthError('No caller to refresh token for')
 
     def _refresh_user_token(self):
-        if not self.user_creds.refresh_token:
-            raise AuthError(msg='Access token expired and couldn\'t find a refresh token to refresh it')
-        data = {
-            'grant_type': 'refresh_token',
-            'refresh_token': self.user_creds.refresh_token
-        }
-        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
-        res = self._send_request(Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)).json()
+        r = self._prep_refresh_user_token()
+        res = self._send_request(r).json()
         new_creds_obj = self._user_json_to_object(res)
         self._update_user_creds_with(new_creds_obj)
 
@@ -195,12 +179,7 @@ class Spotify(BaseClient):
             - state: State returned from oauth callback
             - set_user_creds: Whether or not to set the user created to the client as the current active user
         '''
-        # Check for equality of states
-        if state is not None:
-            if state != getattr(self.user_creds, 'state', None):
-                res = Response()
-                res.status_code = 401
-                raise AuthError(msg='States do not match or state not provided', http_response=res)
+        self._check_for_state(self, grant, state, set_user_creds)
 
         # Get user creds
         user_creds_json = self._request_user_creds(grant).json()
@@ -211,14 +190,9 @@ class Spotify(BaseClient):
             self.user_creds = user_creds_model
         return user_creds_model
 
-    def _request_user_creds(self, grant):
-        data = {
-            'grant_type': 'authorization_code',
-            'code': grant,
-            'redirect_uri': self.client_creds.redirect_uri
-        }
-        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
-        return self._send_request(Request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data))
+    @_prep_request
+    def _request_user_creds(self, grant, **kwargs):
+        return self._send_request(kwargs['r'])
 
     ####################################################################### RESOURCES ############################################################################
 

@@ -4,6 +4,7 @@ import secrets
 from urllib import parse
 from functools import wraps
 from json.decoder import JSONDecodeError
+from requests import Response
 
 
 def _create_secret(bytes_length=32):
@@ -28,7 +29,7 @@ def _get_key_recursively(response, key, limit):
     stack = [response]
     iters_performed = 0
     while iters_performed < limit and len(stack) > 0:
-        # Check if dicts have key in their top layer, if yes, return
+        # Check if dicts have the key in their top layer, if yes, return
         for dct in stack:
             key_found = dct.get(key)
             if key_found is not None:
@@ -166,3 +167,45 @@ def convert_from_iso_date(date):
     if not isinstance(date, datetime.datetime):
         raise TypeError('date must be of type datetime.datetime')
     return datetime.date.fromisoformat(date)
+
+async def _resolve_async_response(res):
+    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
+    new_res = Response()
+    new_res.status_code = res.status
+    new_res.json = await res.json()
+    new_res.headers = res.headers
+    new_res.reason = res.reason
+    new_res.url = res.url
+    new_res.method = res.method
+    new_res.real_url = res.real_url
+    return new_res
+
+
+class _DictRequest(dict):
+    def __init__(self, *args, **kwargs):
+        super(_DictRequest, self).__init__(*args, **kwargs)
+        for arg in args:
+            if isinstance(arg, dict):
+                for k, v in arg.items():
+                    self[k] = v
+
+        if kwargs:
+            for k, v in kwargs.items():
+                self[k] = v
+
+    def __getattr__(self, attr):
+        return self.get(attr)
+
+    def __setattr__(self, key, value):
+        self.__setitem__(key, value)
+
+    def __setitem__(self, key, value):
+        super(_DictRequest, self).__setitem__(key, value)
+        self.__dict__.update({key: value})
+
+    def __delattr__(self, item):
+        self.__delitem__(item)
+
+    def __delitem__(self, key):
+        super(Map, self).__delitem__(key)
+        del self.__dict__[key]

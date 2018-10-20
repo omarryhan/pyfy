@@ -1,4 +1,5 @@
 import json
+from json import dumps
 import base64
 import logging
 import warnings
@@ -11,6 +12,8 @@ from requests.exceptions import HTTPError, Timeout
 from requests.adapters import HTTPAdapter
 from cachecontrol import CacheControlAdapter
 from aiohttp import ClientRequest
+from aiohttp.payload import JsonPayload
+from yarl import URL
 
 from .creds import (
     ClientCreds,
@@ -32,7 +35,8 @@ from .utils import (
     _is_single_resource,
     _convert_to_iso_date,
     convert_from_iso_date,
-    _prep_request
+    _prep_request,
+    _DictRequest
 )
 
 
@@ -93,6 +97,45 @@ class BaseClient:
             self._caller = self._user_creds
             if hasattr(user_creds, 'access_token') and ensure_user_auth and self._is_async is False:  # Attempt user authorization upon client instantiation
                 self._check_authorization()
+
+    def _prep_authorize_client_creds(self, client_creds=None):
+        if client_creds:
+            if self.client_creds:
+                warnings.warn('Overwriting existing client_creds object')
+            self.client_creds = client_creds
+        if not self.client_creds or not self.client_creds.client_id or not self.client_creds.client_secret:
+            raise AuthError('No client credentials set')
+
+        data = {'grant_type': 'client_credentials'}
+        headers = self._client_authorization_header
+        return self._create_request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
+
+    def _prep_refresh_user_token(self):
+        if not self.user_creds.refresh_token:
+            raise AuthError(msg='Access token expired and couldn\'t find a refresh token to refresh it')
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': self.user_creds.refresh_token
+        }
+        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
+        return self._create_request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
+
+    def _check_for_state(self, grant, state, set_user_creds):
+        # Check for equality of states
+        if state is not None:
+            if state != getattr(self.user_creds, 'state', None):
+                res = Response()
+                res.status_code = 401
+                raise AuthError(msg='States do not match or state not provided', http_response=res)
+
+    def _prep__request_user_creds(self, grant):
+        data = {
+            'grant_type': 'authorization_code',
+            'code': grant,
+            'redirect_uri': self.client_creds.redirect_uri
+        }
+        headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
+        return self._create_request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
 
     @property
     def user_creds(self):
@@ -191,11 +234,17 @@ class BaseClient:
         else:
             raise ApiError(msg='Call Requires an authorized caller, either client or user')
 
-    def _create_request(self, method, url, headers=None, data=None, json=None):
+    def _create_request(self, method, url, headers={}, data=None, json=None):
         if self._is_async is False:
             return Request(method=method, headers=headers, url=url, data=data, json=json)
         elif self._is_async is True:
-            return ClientRequest(method=method, headers=headers, url=url, data=data, json=json)
+            return _DictRequest(
+                method=method,
+                headers=headers,
+                url=url,
+                data=data,
+                json=json
+            )
 
     def _prep__check_authorization(self):  # double dundered for consistency
         test_url = BASE_URI + '/search?' + parse.urlencode(dict(q='Hey spotify am I authorized', type='artist'))
