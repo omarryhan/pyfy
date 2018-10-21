@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncSpotify(BaseClient):
-    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, proxies=None, proxy_auth=None, timeout=7,
+    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, proxies=None, proxy_auth=None, timeout=10,
                 max_retries=10, enforce_state_check=True, backoff_factor=1, default_to_locale=True, populate_user_creds=True):
         '''
         Parameters:
@@ -83,8 +83,9 @@ class AsyncSpotify(BaseClient):
 
     @property
     def Session(self):
-        timeout = ClientTimeout(total=self.timeout)
-        return lambda: ClientSession(timeout=timeout)
+        #timeout = ClientTimeout(total=self.timeout)
+        #return lambda: ClientSession(timeout=timeout)
+        return ClientSession
 
     async def _send_authorized_request(self, r):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
@@ -107,9 +108,10 @@ class AsyncSpotify(BaseClient):
         headers = r.get('headers')
         data = r.get('data')
         json = r.get('json')
+        timeout = ClientTimeout(total=self.timeout)
         try:
             async with self.Session() as sess:
-                res = await sess.request(url=url, headers=headers, data=data, json=json, method=method, proxy=self.proxies, proxy_auth=self.proxy_auth)
+                res = await sess.request(url=url, headers=headers, data=data, json=json, method=method, proxy=self.proxies, proxy_auth=self.proxy_auth, timeout=timeout)
             res.raise_for_status()
         except ClientResponseError as e:
             res = await _resolve_async_response(res)
