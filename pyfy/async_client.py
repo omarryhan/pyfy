@@ -109,7 +109,7 @@ class AsyncSpotify(BaseClient):
         json = r.get('json')
         try:
             async with self.Session() as sess:
-                res = await sess.request(url=url, headers=headers, data=data, json=None, method=method, proxy=self.proxies, proxy_auth=self.proxy_auth)
+                res = await sess.request(url=url, headers=headers, data=data, json=json, method=method, proxy=self.proxies, proxy_auth=self.proxy_auth)
             res.raise_for_status()
         except ClientResponseError as e:
             res = await _resolve_async_response(res)
