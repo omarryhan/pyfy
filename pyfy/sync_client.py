@@ -179,7 +179,7 @@ class Spotify(BaseClient):
             - state: State returned from oauth callback
             - set_user_creds: Whether or not to set the user created to the client as the current active user
         '''
-        self._check_for_state(self, grant, state, set_user_creds)
+        self._check_for_state(grant, state, set_user_creds)
 
         # Get user creds
         user_creds_json = self._request_user_creds(grant).json()

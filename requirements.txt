@@ -3,6 +3,7 @@ requests[socks]
 cachecontrol
 aiohttp
 cchardet
-#aiodns  # Sometimes causes problems with tox
+aiodns  # Sometimes causes problems with tox
 backoff
 yarl
+ujson

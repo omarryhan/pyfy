@@ -36,7 +36,7 @@ from .utils import (
     _convert_to_iso_date,
     convert_from_iso_date,
     _prep_request,
-    _DictRequest
+    _Dict
 )
 
 
@@ -143,7 +143,7 @@ class BaseClient:
 
     @user_creds.setter
     def user_creds(self, user_creds):
-        if self._is_async:
+        if self._is_async is False:  # Only if sync.
             self._session.close()
             self._session = self._create_session(self.max_retries, self.proxies, self.backoff_factor, self.cache)
         self._user_creds = user_creds
@@ -165,7 +165,7 @@ class BaseClient:
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
             'redirect_uri': self.client_creds.redirect_uri,
-            'scopes': ' '.join(self.client_creds.scopes),
+            'scope': ' '.join(self.client_creds.scopes),
             'show_dialog': json.dumps(self.client_creds.show_dialog)
         }
         if self.enforce_state_check:
@@ -238,7 +238,7 @@ class BaseClient:
         if self._is_async is False:
             return Request(method=method, headers=headers, url=url, data=data, json=json)
         elif self._is_async is True:
-            return _DictRequest(
+            return _Dict(
                 method=method,
                 headers=headers,
                 url=url,

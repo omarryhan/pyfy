@@ -1,9 +1,15 @@
-import json
 import datetime
 import secrets
 from urllib import parse
 from functools import wraps
 from json.decoder import JSONDecodeError
+from aiohttp import ContentTypeError
+from inspect import iscoroutinefunction
+try:
+    import ujson as json
+except:
+    import json
+
 from requests import Response
 
 
@@ -77,7 +83,7 @@ def _prep_request(f):
     '''
     All this decorator does is that it passes the arguments of the wrapped method to another method
     for some preprocessing and dependency injection.
-    The new method should be named '_prep_' + the name of the wrapped method
+    The other method should be named '_prep_' + the name of the wrapped method
     e.g. playlists --> _prep_playlists
     The return value of the _prep_ method is then passed on to the original function as the
     keyword argument 'r'.
@@ -108,6 +114,21 @@ def _nullable_response(f):
         else:
             return original_response
 
+    @wraps(f)
+    async def async_wrapper(*args, **kwargs):
+        try:
+            original_response = await f(*args, **kwargs)
+        except ContentTypeError as e:
+            return {}
+            #if e.request_info == 0:
+            #    return {}  # If response is empty return, else raise the error
+            #else:
+            #    raise e
+        else:
+            return original_response
+
+    if iscoroutinefunction(f):
+        return async_wrapper
     return wrapper
 
 
@@ -168,22 +189,9 @@ def convert_from_iso_date(date):
         raise TypeError('date must be of type datetime.datetime')
     return datetime.date.fromisoformat(date)
 
-async def _resolve_async_response(res):
-    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
-    new_res = Response()
-    new_res.status_code = res.status
-    new_res.json = await res.json()
-    new_res.headers = res.headers
-    new_res.reason = res.reason
-    new_res.url = res.url
-    new_res.method = res.method
-    new_res.real_url = res.real_url
-    return new_res
-
-
-class _DictRequest(dict):
+class _Dict(dict):
     def __init__(self, *args, **kwargs):
-        super(_DictRequest, self).__init__(*args, **kwargs)
+        super(_Dict, self).__init__(*args, **kwargs)
         for arg in args:
             if isinstance(arg, dict):
                 for k, v in arg.items():
@@ -200,7 +208,7 @@ class _DictRequest(dict):
         self.__setitem__(key, value)
 
     def __setitem__(self, key, value):
-        super(_DictRequest, self).__setitem__(key, value)
+        super(_Dict, self).__setitem__(key, value)
         self.__dict__.update({key: value})
 
     def __delattr__(self, item):
@@ -209,3 +217,43 @@ class _DictRequest(dict):
     def __delitem__(self, key):
         super(Map, self).__delitem__(key)
         del self.__dict__[key]
+
+@_nullable_response
+async def _resolve_async_response(res):
+    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
+    #from pprint import pprint
+    new_res = _Dict()
+    keys_and_attrs = [(key, getattr(res, key)) for key in dir(res) if not key.startswith('_')]
+    async with res:
+        for key, attr in keys_and_attrs:
+            if iscoroutinefunction(attr):
+                if key == 'json':
+                    setattr(new_res, key, await attr())
+                #if k == 'read':
+                #    try:
+                #        setattr(new_res, 'json', json.loads(await v()))
+                #    except (TypeError, ValueError):
+                #        setattr(new_res, 'json', {})
+            else:
+                if key == 'status':
+                    setattr(new_res,  'status_code', attr)
+                else:
+                    setattr(new_res, key, attr)
+    return new_res
+
+@_nullable_response
+def _resolve_response(res):
+    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
+    new_res = _Dict()
+    keys_and_attrs = [(key, getattr(res, key)) for key in dir(res) if not key.startswith('_')]
+    for key, attr in keys_and_attrs:
+        if iscoroutinefunction(attr):
+            continue
+        else:
+            if key == 'status':
+                setattr(new_res,  'status_code', attr)
+            else:
+                setattr(new_res, key, attr)
+    if hasattr(new_res, 'json') is False:
+        new_res.json = {}
+    return new_res

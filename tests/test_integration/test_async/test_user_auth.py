@@ -2,7 +2,6 @@ from pyfy import AsyncSpotify as Spotify, AuthError, ClientCreds
 import pytest
 
 ## This must test authentication without having a client credentials model loaded to the client.
-## Only User model loaded from developer console or by any other means
 
 empty_client_creds = ClientCreds()
 
