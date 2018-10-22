@@ -196,7 +196,7 @@ class Spotify:
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
             'redirect_uri': self.client_creds.redirect_uri,
-            'scopes': ' '.join(self.client_creds.scopes),
+            'scope': ' '.join(self.client_creds.scopes),
             'show_dialog': json.dumps(self.client_creds.show_dialog)
         }
         if self.enforce_state_check:
