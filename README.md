@@ -44,16 +44,16 @@
 ### Async
 
     from pyfy import AsyncSpotify
-    from asyncio import run
+    from asyncio import create_task, gather, run
 
     queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
     spt = AsyncSpotify('your_access_token')
 
-    async def main():
-        for q in queries:
-            print(await spt.search(q))
+    for q in queries:
+        tasks = [create_task(spt.search(q)) for q in queries]
 
-    run(main())
+    results = run(gather(*tasks))
+    print(results)
 
 ## Authentication and Authorization
 
