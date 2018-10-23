@@ -1,12 +1,15 @@
 from pprint import pprint, pformat
-import json
+try:
+    import ujson as json
+except:
+    import json
 import logging
 import warnings
 import datetime
 from urllib import parse
 import asyncio
 
-from aiohttp import ClientSession, ClientTimeout, ClientRequest, ClientResponseError, ClientError
+from aiohttp import ClientSession, ClientTimeout, ClientRequest, ClientResponseError, ClientError, TCPConnector
 from concurrent.futures._base import TimeoutError
 import backoff
 
@@ -29,7 +32,8 @@ from .utils import (
     _convert_to_iso_date,
     _prep_request,
     _resolve_async_response,
-    _resolve_response
+    _resolve_response,
+    _set_and_get_me_attr_async
 )
 from.base_client import (
     BaseClient,
@@ -46,7 +50,7 @@ logger.setLevel(logging.DEBUG)
 
 class AsyncSpotify(BaseClient):
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, proxies=None, proxy_auth=None, timeout=7,
-                max_retries=1, enforce_state_check=True, backoff_factor=1, default_to_locale=True, populate_user_creds=True):
+                max_retries=1, enforce_state_check=True, backoff_factor=1, default_to_locale=True, populate_user_creds=True, max_connections=1000):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -58,7 +62,9 @@ class AsyncSpotify(BaseClient):
             enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
             backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
             default_to_locale: Will pass methods decorated with @locale_injecteable the user's locale if available.
-                IMPORTANT: Must first await populate_user_creds in order to successfully default to locale
+            max_connections: Max TCP connections per host from the same session
+            populate_user_creds: Sets user_creds info from Spotify to client's user_creds object. e.g. country. WILL OVERWRITE DATA SET TO USER CREDS IF SET TO TRUE
+
         '''
 
         # unsupported session settings
@@ -67,6 +73,7 @@ class AsyncSpotify(BaseClient):
 
         self._is_async = True
         self.proxy_auth = proxy_auth
+        self.max_connections = max_connections
 
         super().__init__(access_token, client_creds, user_creds, ensure_user_auth, proxies,
             timeout, max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds)
@@ -84,10 +91,16 @@ class AsyncSpotify(BaseClient):
         return None
 
     @property
-    def Session(self):
-        #timeout = ClientTimeout(total=self.timeout)
-        #return lambda: ClientSession(timeout=timeout)
-        return ClientSession
+    def timeout_manager(self):
+        return ClientTimeout(
+            total=self.timeout,
+            sock_read=1  # CHANGE ME!!
+        )
+
+    @property
+    def tcp_connector(self):
+        # NOTE: limit_per_host (int) – limit for simultaneous connections to the same endpoint. Endpoints are the same if they are have equal (host, port, is_ssl) triple.
+        return TCPConnector(limit_per_host=self.max_connections)
 
     async def _send_authorized_request(self, r):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
@@ -96,7 +109,7 @@ class AsyncSpotify(BaseClient):
         return await self._send_request(r)
 
     async def _send_request(self, r):
-        # workaround to support setting instance specific timeouts and maxretries
+        # workaround to support setting instance specific timeouts and maxretries. (You can't set pass self to a decorator)
         return await backoff.on_exception(
             wait_gen=lambda: backoff.expo(factor=self.backoff_factor),
             exception=(TimeoutError, asyncio.TimeoutError),  # Not sure why this isn't working properly???
@@ -107,7 +120,7 @@ class AsyncSpotify(BaseClient):
     async def _handle_send_request(self, r):
         #print('\n\n REQUEST:')
         #pprint(r.__dict__)
-        async with self.Session() as sess:
+        async with ClientSession(json_serialize=json.dumps, connector=self.tcp_connector) as sess:
             res = await sess.request(
                 url=r.get('url'),
                 headers=r.get('headers'),
@@ -116,14 +129,25 @@ class AsyncSpotify(BaseClient):
                 method=r.get('method'),
                 proxy=self.proxies,
                 proxy_auth=self.proxy_auth,
-                timeout=ClientTimeout(total=self.timeout + 1)  # To make it retry first
+                timeout=self.timeout_manager
             )
+
+        #async with self.Session() as sess:
+        #    res = await sess.request(
+        #        url=r.get('url'),
+        #        headers=r.get('headers'),
+        #        data=r.get('data'),
+        #        json=r.get('json'),
+        #        method=r.get('method'),
+        #        proxy=self.proxies,
+        #        proxy_auth=self.proxy_auth,
+        #        timeout=self.timeout
+        #    )
         try:
-            #if res.status == 204:  # No content
-            #    new_res = _resolve_response(res)
-            #else:
-            #    new_res = await _resolve_async_response(res)
-            new_res = await _resolve_async_response(res)
+            if res.status == 204:  # No content
+                full_res = _resolve_response(res)
+            else:
+                full_res = await _resolve_async_response(res)
             #print('\n\n RESPONSE:')
             #pprint(res.__dict__.get('json'))
             res.raise_for_status()
@@ -131,27 +155,27 @@ class AsyncSpotify(BaseClient):
             print('\nRequest timed out, try increasing the timeout period\n')
             raise e
         except ClientResponseError as e:
-            if new_res.status_code == 401:
-                if new_res.json.get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
+            if full_res.status_code == 401:  # Automatically refresh and resend request
+                if full_res.json.get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
                     old_auth_header = r['headers']['Authorization']
                     await self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
                     assert new_auth_header != old_auth_header  # Assert access token is changed to avoid infinite loops
                     r['headers'].update(new_auth_header)
-                    new_res = await self._send_request(r)
+                    full_res = await self._send_request(r)
                 else:
-                    msg = new_res.json.get('error_description') or new_res.json  # If none, raise the whole JSON
-                    raise AuthError(msg=msg, http_response=new_res, http_request=r, e=e)
-            elif new_res.status_code == 429:
-                retry_after = new_res.headers['Retry-After']
+                    msg = full_res.json.get('error_description') or full_res.json  # If none, raise the whole JSON
+                    raise AuthError(msg=msg, http_response=full_res, http_request=r, e=e)
+            elif full_res.status_code == 429:
+                retry_after = full_res.headers['Retry-After']
                 asyncio.sleep(retry_after)
-                new_res = await self._handle_send_request(r)
-                return new_res
+                full_res = await self._handle_send_request(r)
+                return full_res
             else:
-                msg = _safe_getitem(new_res.json, 'error', 'message') or _safe_getitem(new_res.json, 'error_description')
-                raise ApiError(msg=msg, http_response=new_res, http_request=r, e=e)
+                msg = _safe_getitem(full_res.json, 'error', 'message') or _safe_getitem(full_res.json, 'error_description')
+                raise ApiError(msg=msg, http_response=full_res, http_request=r, e=e)
         else:
-            return new_res
+            return full_res
 
     @_prep_request
     async def _check_authorization(self, **kwargs):
@@ -253,10 +277,12 @@ class AsyncSpotify(BaseClient):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market')
     async def currently_playing(self, market=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market')
     async def currently_playing_info(self, market=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -301,6 +327,7 @@ class AsyncSpotify(BaseClient):
 ##### Playlists
 
     @_prep_request
+    @_locale_injectable('market')
     async def playlist(self, playlist_id, market=None, fields=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -312,31 +339,15 @@ class AsyncSpotify(BaseClient):
     async def _user_playlists(self, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    # Rewrite those
     async def follows_playlist(self, playlist_id, user_ids=None, **kwargs):
         if user_ids is None:
-            if getattr(self.user_creds, 'id', None) is None:
-                if self._populate_user_creds_:
-                    await self.populate_user_creds()
-                    user_ids = getattr(self.user_creds, 'id')
-                else:
-                    user_ids = await self.me.get('id')
-            else:
-                user_ids = self.user_creds.id  
+            user_ids = await _set_and_get_me_attr_async(self, 'id')
         r =  self._prep_follows_playlist(playlist_id, user_ids)
         return (await self._send_authorized_request(r)).json
 
-    # Rewrite those
     @_nullable_response
     async def create_playlist(self, name, description=None, public=False, collaborative=False, **kwargs):
-        if getattr(self.user_creds, 'id', None) is None:
-            if self._populate_user_creds_:
-                await self.populate_user_creds()
-                user_id = getattr(self.user_creds, 'id')
-            else:
-                user_id = await self.me.get('id')
-        else:
-            user_id = self.user_creds.id  
+        user_id = await _set_and_get_me_attr_async(self, 'id')
         r = self._prep_create_playlist(name, user_id, description, public, collaborative)
         return (await self._send_authorized_request(r)).json
 
@@ -365,6 +376,7 @@ class AsyncSpotify(BaseClient):
 ##### Playlist Contents
 
     @_prep_request
+    @_locale_injectable('market')
     async def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -406,10 +418,12 @@ class AsyncSpotify(BaseClient):
 ##### Tracks
 
     @_prep_request
+    @_locale_injectable('market')
     async def user_tracks(self, market=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market')
     async def tracks(self, track_ids, market=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -465,12 +479,14 @@ class AsyncSpotify(BaseClient):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('country')
     async def artist_top_tracks(self, artist_id, country=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
 ##### Albums
 
     @_prep_request
+    @_locale_injectable('market')
     async def albums(self, album_ids, market=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -527,10 +543,12 @@ class AsyncSpotify(BaseClient):
 ##### Others
 
     @_prep_request
+    @_locale_injectable('market')
     async def album_tracks(self, album_id, market=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market')
     async def artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -570,14 +588,17 @@ class AsyncSpotify(BaseClient):
 ##### Personalization & Explore
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     async def category(self, category_id, country=None, locale=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     async def categories(self, country=None, locale=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     async def category_playlist(self, category_id, country=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
@@ -586,14 +607,17 @@ class AsyncSpotify(BaseClient):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     async def featured_playlists(self, country=None, locale=None, timestamp=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     async def new_releases(self, country=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market')
     async def search(self, q, types='track', market=None, limit=None, offset=None, **kwargs):
         ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -611,6 +635,7 @@ class AsyncSpotify(BaseClient):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
+    @_locale_injectable('market', support_from_token=False)
     async def recommendations(
         self,
         limit=None,

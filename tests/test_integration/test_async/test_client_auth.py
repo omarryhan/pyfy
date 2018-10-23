@@ -4,12 +4,6 @@ import requests
 
 from pyfy import AuthError
 
-'''
-def test(event_loop):
-    url = 'http://httpbin.org/get'
-    resp = event_loop.run_until_complete(http_client(url))
-    assert b'HTTP/1.1 200 OK' in resp
-'''
 
 def test_valid_oauth_uri(async_spotify_client_auth):
     # Assumes valid spotify id and "valid" spotify secret

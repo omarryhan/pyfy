@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='pyfy',
-    version="0.0.13",
+    version="0.0.14",
     author='Omar Ryhan',
     author_email='omarryhan@gmail.com',
     license='MIT',

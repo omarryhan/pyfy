@@ -3,9 +3,13 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_category(async_spotify_user_auth):
+async def test_category_sleep(async_spotify_user_auth):
     assert await async_spotify_user_auth.category('sleep')
+
+async def test_category_soul(async_spotify_user_auth):
     assert await async_spotify_user_auth.category('soul')
+
+async def test_category_jazz(async_spotify_user_auth):
     assert await async_spotify_user_auth.category('jazz')
 
 async def test_categories(async_spotify_user_auth):

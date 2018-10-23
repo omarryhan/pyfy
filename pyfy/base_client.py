@@ -91,12 +91,18 @@ class BaseClient:
             else:
                 user_creds = UserCreds(access_token=access_token)
         self._user_creds = user_creds
+
+        # Set caller
         if self._user_creds is not None:
             # You shouldn't need to manually change this flag.from_token
             # It's bound to be equal to either the client_creds object or user_creds object depending on which was last authorized
             self._caller = self._user_creds
             if hasattr(user_creds, 'access_token') and ensure_user_auth and self._is_async is False:  # Attempt user authorization upon client instantiation
                 self._check_authorization()
+        elif self.client_creds.access_token:
+            self._caller = self.client_creds
+        else:
+            self._caller = None
 
     def _prep_authorize_client_creds(self, client_creds=None):
         if client_creds:
@@ -143,13 +149,22 @@ class BaseClient:
 
     @user_creds.setter
     def user_creds(self, user_creds):
+
+        # Refresh session for each sync user (To avoid cache collision. Not likely. just a precaution).
         if self._is_async is False:  # Only if sync.
             self._session.close()
             self._session = self._create_session(self.max_retries, self.proxies, self.backoff_factor, self.cache)
+
+        # Set user
         self._user_creds = user_creds
         self._caller = self._user_creds
-        if self.ensure_user_auth:
-            self._check_authorization()
+        
+        # Check ensure auth and user popultation (Not allowed for async as this setters shouldn't be coroutines)
+        if self._is_async is False:
+            if self.ensure_user_auth:
+                self._check_authorization()
+            if self._populate_user_creds_:
+                self.populate_user_creds()
 
     @property
     def is_oauth_ready(self):
@@ -240,10 +255,10 @@ class BaseClient:
         elif self._is_async is True:
             return _Dict(
                 method=method,
-                headers=headers,
+                headers=headers if headers else {},
                 url=url,
-                data=data,
-                json=json
+                data=data if data else None,  # To avoid sending empty dicts. Aiohttp sometimes gets upset about it.
+                json=json if json else None
             )
 
     def _prep__check_authorization(self):  # double dundered for consistency
@@ -298,13 +313,11 @@ class BaseClient:
         params = dict(device_id=device_id)
         return self._create_request(method='PUT', url=_build_full_url(url, params))
 
-    @_locale_injectable('market')
     def _prep_currently_playing(self, market=None):
         url = BASE_URI + '/me/player/currently-playing'
         params = dict(market=market)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('market')
     def _prep_currently_playing_info(self, market=None):
         url = BASE_URI + '/me/player'
         params = dict(market=market)
@@ -353,7 +366,6 @@ class BaseClient:
 
 ##### Playlists
 
-    @_locale_injectable('market')
     def _prep_playlist(self, playlist_id, market=None, fields=None):
         url = BASE_URI + '/playlists/' + playlist_id
         params = dict(market=market, fields=fields)
@@ -407,9 +419,7 @@ class BaseClient:
 
 ##### Playlist Contents
 
-    @_locale_injectable('market')
     def _prep_playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None):
-        
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
         params = dict(market=market, fields=fields, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
@@ -485,13 +495,11 @@ class BaseClient:
 
 #### Tracks
 
-    @_locale_injectable('market')
     def _prep_user_tracks(self, market=None, limit=None, offset=None):
         url = BASE_URI + '/me/tracks'
         params = dict(market=market, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('market')
     def _prep_tracks(self, track_ids, market=None):
         if _is_single_resource(track_ids):
             return self._prep__track(track_id=_comma_join_list(track_ids), market=market)
@@ -558,7 +566,6 @@ class BaseClient:
         params = {}
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('country')
     def _prep_artist_top_tracks(self, artist_id, country=None):
         url = BASE_URI + '/artists/' + artist_id + '/top-tracks'
         params = dict(country=country)
@@ -566,7 +573,6 @@ class BaseClient:
 
 ##### Albums
 
-    @_locale_injectable('market')
     def _prep_albums(self, album_ids, market=None):
         if _is_single_resource(album_ids):
             return self._prep__album(_comma_join_list(album_ids), market)
@@ -632,13 +638,11 @@ class BaseClient:
 
 ##### Others
 
-    @_locale_injectable('market')
     def _prep_album_tracks(self, album_id, market=None, limit=None, offset=None):
         url = BASE_URI + '/albums/' + album_id + '/tracks'
         params = dict(market=market, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('market')
     def _prep_artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None):
         url = BASE_URI + '/artists/' + artist_id + '/albums'
         params = dict(include_groups=include_groups, market=market, limit=limit, offset=offset)
@@ -670,19 +674,16 @@ class BaseClient:
 
 ##### Personalization & Explore
 
-    @_locale_injectable('country', support_from_token=False)
     def _prep_category(self, category_id, country=None, locale=None):
         url = BASE_URI + '/browse/categories/' + category_id
         params = dict(country=country, locale=locale)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('country', support_from_token=False)
     def _prep_categories(self, country=None, locale=None, limit=None, offset=None):
         url = BASE_URI + '/browse/categories'
         params = dict(country=country, locale=locale, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('country', support_from_token=False)
     def _prep_category_playlist(self, category_id, country=None, limit=None, offset=None):
         url = BASE_URI + '/browse/categories/' + category_id + '/playlists'
         params = dict(country=country, limit=limit, offset=offset)
@@ -691,7 +692,6 @@ class BaseClient:
     def _prep_available_genre_seeds(self):
         return self._create_request(method='GET', url=BASE_URI + '/recommendations/available-genre-seeds')
 
-    @_locale_injectable('country', support_from_token=False)
     def _prep_featured_playlists(self, country=None, locale=None, timestamp=None, limit=None, offset=None):
         if isinstance(timestamp, datetime.datetime):
             timestamp = _convert_to_iso_date(timestamp)
@@ -699,13 +699,11 @@ class BaseClient:
         params = dict(country=country, locale=locale, timestamp=timestamp, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('country', support_from_token=False)
     def _prep_new_releases(self, country=None, limit=None, offset=None):
         url = BASE_URI + '/browse/new-releases'
         params = dict(country=country, limit=limit, offset=offset)
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('market')
     def _prep_search(self, q, types='track', market=None, limit=None, offset=None):
         ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
         url = BASE_URI + '/search'
@@ -729,7 +727,6 @@ class BaseClient:
         params = dict()
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
-    @_locale_injectable('market', support_from_token=False)
     def _prep_recommendations(
         self,
         limit=None,

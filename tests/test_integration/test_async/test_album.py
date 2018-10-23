@@ -25,4 +25,3 @@ async def test_album(async_spotify_user_auth, reise_reise_album_id, ritual_spiri
 
 async def test_albums(async_spotify_user_auth, reise_reise_album_id):
     assert await async_spotify_user_auth.albums(reise_reise_album_id)
-    assert await async_spotify_user_auth.albums(reise_reise_album_id)

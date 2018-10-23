@@ -1,6 +1,9 @@
 from pyfy import Spotify, UserCreds
 import pytest
 
+def test_sync_client_instantiates_empty():
+    c = Spotify()
+
 def test_caller_defaults_to_user():
     u = UserCreds(access_token='asdasdasd')
     c = Spotify(user_creds=u, populate_user_creds=False)
@@ -33,7 +36,7 @@ def test_client_raises_error_if_both_access_token_and_model():
         Spotify(user_creds=u, access_token=u.access_token)
 
 def test_populate_user_creds(me_stub):
-    spt = Spotify()
+    spt = Spotify(populate_user_creds=False)  # Offline test
     user = UserCreds()
     spt.user_creds = user
     spt._populate_user_creds(me_stub)

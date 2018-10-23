@@ -30,7 +30,8 @@ from .utils import (
     _is_single_resource,
     _convert_to_iso_date,
     convert_from_iso_date,
-    _prep_request
+    _prep_request,
+    _set_and_get_me_attr_sync
 )
 from .base_client import (
     BaseClient,
@@ -59,7 +60,7 @@ class Spotify(BaseClient):
             backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
             default_to_locale: Will pass methods decorated with @locale_injecteable the user's locale if available. (must have populate_user_creds)
             cache: Whether or not to cache HTTP requests for the user
-            populate_user_creds: Sets user_creds info from Spotify to client's user_creds object. e.g. country, 
+            populate_user_creds: Sets user_creds info from Spotify to client's user_creds object. e.g. country. WILL OVERWRITE DATA SET TO USER CREDS IF SET TO TRUE
         '''
         self._is_async = False  # Client is synchronous
         super().__init__(access_token, client_creds, user_creds, ensure_user_auth, proxies,
@@ -216,11 +217,13 @@ class Spotify(BaseClient):
 
 
     @_prep_request
+    @_locale_injectable('market')
     def currently_playing(self, market=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
 
     @_prep_request
+    @_locale_injectable('market')
     def currently_playing_info(self, market=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -271,6 +274,7 @@ class Spotify(BaseClient):
 ##### Playlists
 
     @_prep_request
+    @_locale_injectable('market')
     def playlist(self, playlist_id, market=None, fields=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -284,27 +288,13 @@ class Spotify(BaseClient):
 
     def follows_playlist(self, playlist_id, user_ids=None, **kwargs):
         if user_ids is None:
-            if getattr(self.user_creds, 'id', None) is None:
-                if self._populate_user_creds_:
-                    self.populate_user_creds()
-                    user_ids = getattr(self.user_creds, 'id')
-                else:
-                    user_ids = self.me.get('id')
-            else:
-                user_ids = self.user_creds.id            
+            user_ids = _set_and_get_me_attr_sync(self, 'id')
         r = self._prep_follows_playlist(playlist_id, user_ids)
         return self._send_authorized_request(r).json()
 
     @_nullable_response
     def create_playlist(self, name, description=None, public=False, collaborative=False, **kwargs):
-        if getattr(self.user_creds, 'id', None) is None:
-            if self._populate_user_creds_:
-                self.populate_user_creds()
-                user_id = getattr(self.user_creds, 'id')
-            else:
-                user_id = self.me.get('id')
-        else:
-            user_id = self.user_creds.id  
+        user_id = _set_and_get_me_attr_sync(self, 'id')
         r = self._prep_create_playlist(name, user_id, description, public, collaborative)
         return self._send_authorized_request(r).json()
 
@@ -335,6 +325,7 @@ class Spotify(BaseClient):
 
 
     @_prep_request
+    @_locale_injectable('market')
     def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -376,10 +367,12 @@ class Spotify(BaseClient):
 ##### Tracks
 
     @_prep_request
+    @_locale_injectable('market')
     def user_tracks(self, market=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('market')
     def tracks(self, track_ids, market=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -435,12 +428,14 @@ class Spotify(BaseClient):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('country')
     def artist_top_tracks(self, artist_id, country=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
 ##### Albums
 
     @_prep_request
+    @_locale_injectable('market')
     def albums(self, album_ids, market=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -497,10 +492,12 @@ class Spotify(BaseClient):
 ##### Others
 
     @_prep_request
+    @_locale_injectable('market')
     def album_tracks(self, album_id, market=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('market')
     def artist_albums(self, artist_id, include_groups=None, market=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -537,14 +534,17 @@ class Spotify(BaseClient):
 ##### Personalization & Explore
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     def category(self, category_id, country=None, locale=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     def categories(self, country=None, locale=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     def category_playlist(self, category_id, country=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
@@ -553,14 +553,17 @@ class Spotify(BaseClient):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     def featured_playlists(self, country=None, locale=None, timestamp=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('country', support_from_token=False)
     def new_releases(self, country=None, limit=None, offset=None, **kwargs):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('market')
     def search(self, q, types='track', market=None, limit=None, offset=None, **kwargs):
         ''' 'track' or ['track'] or 'artist' or ['track','artist'] '''
         return self._send_authorized_request(kwargs['r']).json()
@@ -578,6 +581,7 @@ class Spotify(BaseClient):
         return self._send_authorized_request(kwargs['r']).json()
 
     @_prep_request
+    @_locale_injectable('market', support_from_token=False)
     def recommendations(
         self,
         limit=None,
