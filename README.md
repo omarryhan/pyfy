@@ -49,12 +49,9 @@
     queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
     spt = AsyncSpotify('your_access_token')
 
-    async def search(q):
-        return await spt.search(q)
-
     async def main():
         for q in queries:
-            print(await search(q))
+            print(await spt.search(q))
 
     run(main())
 
