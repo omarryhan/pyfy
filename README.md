@@ -49,8 +49,7 @@
     queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
     spt = AsyncSpotify('your_access_token')
 
-    for q in queries:
-        tasks = [create_task(spt.search(q)) for q in queries]
+    tasks = [create_task(spt.search(q)) for q in queries]
 
     results = run(gather(*tasks))
     print(results)
