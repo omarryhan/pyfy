@@ -39,19 +39,21 @@
     spt.volume(85)
     spt.next()
     spt.pause()
-    json_search_results = spt.search(q='alice in chains them bones')
+    results = spt.search(q='alice in chains them bones')
+    print(results)
 
 ### Async
 
     from pyfy import AsyncSpotify
-    from asyncio import create_task, gather, run
+    from asyncio import ensure_future, get_event_loop, gather
 
     queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
     spt = AsyncSpotify('your_access_token')
 
-    tasks = [create_task(spt.search(q)) for q in queries]
+    tasks = [ensure_future(spt.search(q)) for q in queries]
 
-    results = run(gather(*tasks))
+    loop = get_event_loop()
+    results = loop.run_until_complete(gather(*tasks))
     print(results)
 
 ## Authentication and Authorization
