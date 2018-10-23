@@ -4,9 +4,6 @@ import requests
 
 from pyfy import ALL_SCOPES, AuthError, ClientCreds
 
-def test_integration_tests_discovered():
-    assert True
-
 
 def test_valid_oauth_uri(spotify, client_creds_from_env):
     # Assumes valid spotify id and "valid" spotify secret

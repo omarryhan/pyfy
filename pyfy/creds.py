@@ -1,5 +1,8 @@
 import os
-import json
+try:
+    import ujson as json
+except:
+    import json
 import socket
 import pickle
 import datetime
@@ -12,6 +15,7 @@ try:
     DEFAULT_FILENAME_BASE = socket.gethostname() + "_" + "Spotify_"
 except:
     DEFAULT_FILENAME_BASE = 'Spotify_'
+
 ALL_SCOPES = [
     'streaming',  # Playback
     'app-remote-control',
@@ -45,13 +49,13 @@ class _Creds:
         with open(path, 'wb') as creds_file:
             pickle.dump(self, creds_file, pickle.HIGHEST_PROTOCOL)
 
-    # Unpickling doesn't work by setting an instance's (self) to the output of one of its own methods. Apparently, the method must be external 
-    #def unpickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
-    #    if name is None:
-    #        name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
-    #    path = os.path.join(path, name)
-    #    with open(path, 'rb') as creds_file:
-    #        self = pickle.load(creds_file)
+    @classmethod
+    def unpickle(cls, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+        if name is None:
+            name = DEFAULT_FILENAME_BASE + cls.__name__ + '_pickle'
+        path = os.path.join(path, name)
+        with open(path, 'rb') as creds_file:
+            return pickle.load(creds_file)
 
     def _delete_pickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
         ''' BE CAREFUL!! THIS WILL PERMENANTLY DELETE ONE OF YOUR FILES IF USED INCORRECTLY
@@ -122,6 +126,7 @@ class UserCreds(_Creds):
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
         self.state = state
+        self.country = None
 
     def load_from_env(self):
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']
