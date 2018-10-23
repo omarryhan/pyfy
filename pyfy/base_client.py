@@ -1,41 +1,29 @@
-import json
-from json import dumps
+try:
+    import ujson as json
+except:
+    import json
 import base64
-import logging
 import warnings
 import datetime
-from urllib import parse
-from urllib3.util import Retry
+from urllib.parse import urlencode
 
-from requests import Request, Session, Response
-from requests.exceptions import HTTPError, Timeout
-from requests.adapters import HTTPAdapter
-from cachecontrol import CacheControlAdapter
-from aiohttp import ClientRequest
-from aiohttp.payload import JsonPayload
-from yarl import URL
+from requests import Request, Response
 
 from .creds import (
     ClientCreds,
     UserCreds,
-    ALL_SCOPES,
     _set_empty_client_creds_if_none,
     _set_empty_user_creds_if_none
 )
-from .excs import SpotifyError, ApiError, AuthError
+from .excs import ApiError, AuthError
 from .utils import (
-    _create_secret,
     _safe_getitem,
     _get_key_recursively,
-    _locale_injectable,
-    _nullable_response,
     _build_full_url,
     _safe_json_dict,
     _comma_join_list,
     _is_single_resource,
     _convert_to_iso_date,
-    convert_from_iso_date,
-    _prep_request,
     _Dict
 )
 
@@ -84,7 +72,7 @@ class BaseClient:
         self.default_to_locale = default_to_locale
         self._populate_user_creds_ = populate_user_creds
 
-        # Set User
+        # Set access token then user_creds
         if access_token is not None:
             if user_creds is not None:
                 raise ValueError('Either provide an access token or a user model, not both!')
@@ -179,17 +167,18 @@ class BaseClient:
         params = {
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
-            'redirect_uri': self.client_creds.redirect_uri,
             'scope': ' '.join(self.client_creds.scopes),
             'show_dialog': json.dumps(self.client_creds.show_dialog)
         }
+        params = urlencode(params)
+        redirect_uri = self.client_creds.redirect_uri
+        uri = f'{OAUTH_AUTHORIZE_URL}?redirect_uri={redirect_uri}&{params}'
         if self.enforce_state_check:
             if self.user_creds.state is None:
                 warnings.warn('No user state provided. Returning URL without a state!')
             else:
-                params.update({'state': self.user_creds.state})
-        params = parse.urlencode(params)
-        return f'{OAUTH_AUTHORIZE_URL}?{params}'
+                uri = uri + f'&state={self.user_creds.state}'
+        return uri
 
     def _update_user_creds_with(self, user_creds_object):
         for key, value in user_creds_object.__dict__.items():
@@ -244,10 +233,10 @@ class BaseClient:
 
     @property
     def _access_authorization_header(self):
-        if self._caller:
+        if self._caller is not None:
             return {'Authorization': 'Bearer {}'.format(self._caller.access_token)}
         else:
-            raise ApiError(msg='Call Requires an authorized caller, either client or user')
+            raise ApiError(msg='Call Requires an authorized caller, either client or user. Call either authorize_client_creds() or set a user creds object.')
 
     def _create_request(self, method, url, headers={}, data=None, json=None):
         if self._is_async is False:
@@ -262,7 +251,7 @@ class BaseClient:
             )
 
     def _prep__check_authorization(self):  # double dundered for consistency
-        test_url = BASE_URI + '/search?' + parse.urlencode(dict(q='Hey spotify am I authorized', type='artist'))
+        test_url = BASE_URI + '/search?' + urlencode(dict(q='Hey spotify am I authorized', type='artist'))
         return self._create_request(method='GET', url=test_url)
 
     def _populate_user_creds(self, me):
@@ -610,11 +599,6 @@ class BaseClient:
     def _prep_me(self):
         url = BASE_URI + '/me'
         return self._create_request(method='GET', url=url)
-
-    def _prep_is_premium(self):
-        if self.me.get('type') == 'premium':
-            return True
-        return False
 
     def _prep_user_profile(self, user_id):
         url = BASE_URI + '/users/' + user_id

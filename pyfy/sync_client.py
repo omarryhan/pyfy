@@ -1,6 +1,8 @@
-import json
+try:
+    import json
+except:
+    import ujson
 import logging
-import warnings
 import datetime
 from urllib import parse
 from urllib3.util import Retry
@@ -12,24 +14,13 @@ from cachecontrol import CacheControlAdapter
 
 from .creds import (
     ClientCreds,
-    UserCreds,
-    ALL_SCOPES,
-    _set_empty_client_creds_if_none,
     _set_empty_user_creds_if_none
 )
-from .excs import SpotifyError, ApiError, AuthError
+from .excs import ApiError, AuthError
 from .utils import (
-    _create_secret,
     _safe_getitem,
-    _get_key_recursively,
     _locale_injectable,
     _nullable_response,
-    _build_full_url,
-    _safe_json_dict,
-    _comma_join_list,
-    _is_single_resource,
-    _convert_to_iso_date,
-    convert_from_iso_date,
     _prep_request,
     _set_and_get_me_attr_sync
 )
@@ -37,8 +28,6 @@ from .base_client import (
     BaseClient,
     TOKEN_EXPIRED_MSG,
     BASE_URI,
-    OAUTH_TOKEN_URL,
-    OAUTH_AUTHORIZE_URL
 )
 
 
@@ -172,14 +161,17 @@ class Spotify(BaseClient):
         self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    def build_user_creds(self, grant, state=None, set_user_creds=True):
+    def build_user_creds(self, grant, state=None, enforce_state_check=None, set_user_creds=True):
         '''
         Second part of OAuth authorization code flow, Raises an AuthError if unauthorized
         Parameters:
             - grant: Code returned to user after authorizing your application
             - state: State returned from oauth callback
+            - enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
             - set_user_creds: Whether or not to set the user created to the client as the current active user
         '''
+        if enforce_state_check is not None:
+            self.enforce_state_check = enforce_state_check
         self._check_for_state(grant, state, set_user_creds)
 
         # Get user creds
@@ -464,12 +456,15 @@ class Spotify(BaseClient):
 ##### Users
 
     @property
-    def me(self):
-        return self._send_authorized_request(super(self.__class__, self)._prep_me()).json()
+    @_prep_request
+    def me(self, **kwargs):
+        return self._send_authorized_request(kwargs['r']).json()
 
     @property
     def is_premium(self):
-        return self._send_authorized_request(super(self.__class__, self)._prep_is_premium()).json()
+        if self.me.get('type') == 'premium':
+            return True
+        return False
 
     @_prep_request
     def user_profile(self, user_id, **kwargs):

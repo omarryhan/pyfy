@@ -11,6 +11,7 @@
 
 ## Features
 
+- Async and Sync clients
 - Support for:
   - OAuth2 client credentials flow
   - OAuth2 authroization code flow
@@ -21,9 +22,13 @@
 - Fit for both production and experimental/personal environments
 - Able to automatically default to user's locales
 - Neatly handles type conversions when necessary
-- Support for HTTP caching
+- Support for HTTP caching (Sync only)
+- Rate limiting
+- support for HTTP and SOCKS Proxies
 
 ## Quick Start
+
+### Sync
 
     from pyfy import Spotify
 
@@ -35,6 +40,23 @@
     spt.next()
     spt.pause()
     json_search_results = spt.search(q='alice in chains them bones')
+
+### Async
+
+    from pyfy import AsyncSpotify
+    from asyncio import run
+
+    queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
+    spt = AsyncSpotify('your_access_token')
+
+    async def search(q):
+        return await spt.search(q)
+
+    async def main():
+        for q in queries:
+            print(await search(q))
+
+    run(main())
 
 ## Authentication and Authorization
 

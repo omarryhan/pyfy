@@ -1,5 +1,4 @@
 import os
-import sys
 import webbrowser
 
 from flask import Flask, redirect, abort, request, jsonify, url_for

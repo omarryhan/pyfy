@@ -4,43 +4,27 @@ try:
 except:
     import json
 import logging
-import warnings
-import datetime
-from urllib import parse
 import asyncio
 
-from aiohttp import ClientSession, ClientTimeout, ClientRequest, ClientResponseError, ClientError, TCPConnector
+from aiohttp import ClientSession, ClientTimeout, ClientResponseError, TCPConnector
 from concurrent.futures._base import TimeoutError
 import backoff
 
 from .creds import (
     ClientCreds,
-    UserCreds,
-    ALL_SCOPES,
     _set_empty_user_creds_if_none
 )
-from .excs import SpotifyError, ApiError, AuthError
+from .excs import ApiError, AuthError
 from .utils import (
     _safe_getitem,
-    _get_key_recursively,
     _locale_injectable,
-    _nullable_response,
-    _build_full_url,
-    _safe_json_dict,
-    _comma_join_list,
-    _is_single_resource,
-    _convert_to_iso_date,
-    _prep_request,
-    _resolve_async_response,
-    _resolve_response,
-    _set_and_get_me_attr_async
+    _set_and_get_me_attr_async,
+    _prep_request
 )
 from.base_client import (
     BaseClient,
     TOKEN_EXPIRED_MSG,
     BASE_URI,
-    OAUTH_TOKEN_URL,
-    OAUTH_AUTHORIZE_URL
 )
 
 
@@ -50,7 +34,7 @@ logger.setLevel(logging.DEBUG)
 
 class AsyncSpotify(BaseClient):
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, proxies=None, proxy_auth=None, timeout=7,
-                max_retries=1, enforce_state_check=True, backoff_factor=1, default_to_locale=True, populate_user_creds=True, max_connections=1000):
+                max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, populate_user_creds=True, max_connections=1000):
         '''
         Parameters:
             client_creds: A client credentials model
@@ -100,7 +84,7 @@ class AsyncSpotify(BaseClient):
     @property
     def tcp_connector(self):
         # NOTE: limit_per_host (int) – limit for simultaneous connections to the same endpoint. Endpoints are the same if they are have equal (host, port, is_ssl) triple.
-        return TCPConnector(limit_per_host=self.max_connections)
+        return TCPConnector(limit_per_host=self.max_connections, enable_cleanup_closed=True)
 
     async def _send_authorized_request(self, r):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
@@ -118,8 +102,6 @@ class AsyncSpotify(BaseClient):
         )(self._handle_send_request)(r)
 
     async def _handle_send_request(self, r):
-        #print('\n\n REQUEST:')
-        #pprint(r.__dict__)
         async with ClientSession(json_serialize=json.dumps, connector=self.tcp_connector) as sess:
             res = await sess.request(
                 url=r.get('url'),
@@ -131,51 +113,34 @@ class AsyncSpotify(BaseClient):
                 proxy_auth=self.proxy_auth,
                 timeout=self.timeout_manager
             )
-
-        #async with self.Session() as sess:
-        #    res = await sess.request(
-        #        url=r.get('url'),
-        #        headers=r.get('headers'),
-        #        data=r.get('data'),
-        #        json=r.get('json'),
-        #        method=r.get('method'),
-        #        proxy=self.proxies,
-        #        proxy_auth=self.proxy_auth,
-        #        timeout=self.timeout
-        #    )
+            async with res:
+                res.status_code = res.status
+                if res.status_code == 204:
+                    res.json = {}
+                else:
+                    res.json = await res.json(content_type=None) or {}
         try:
-            if res.status == 204:  # No content
-                full_res = _resolve_response(res)
-            else:
-                full_res = await _resolve_async_response(res)
-            #print('\n\n RESPONSE:')
-            #pprint(res.__dict__.get('json'))
             res.raise_for_status()
         except (TimeoutError, asyncio.TimeoutError) as e:
             print('\nRequest timed out, try increasing the timeout period\n')
             raise e
         except ClientResponseError as e:
-            if full_res.status_code == 401:  # Automatically refresh and resend request
-                if full_res.json.get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
+            if res.status_code == 401:  # Automatically refresh and resend request
+                if res.json.get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
                     old_auth_header = r['headers']['Authorization']
                     await self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
                     assert new_auth_header != old_auth_header  # Assert access token is changed to avoid infinite loops
                     r['headers'].update(new_auth_header)
-                    full_res = await self._send_request(r)
+                    return await self._send_request(r)
                 else:
-                    msg = full_res.json.get('error_description') or full_res.json  # If none, raise the whole JSON
-                    raise AuthError(msg=msg, http_response=full_res, http_request=r, e=e)
-            elif full_res.status_code == 429:
-                retry_after = full_res.headers['Retry-After']
-                asyncio.sleep(retry_after)
-                full_res = await self._handle_send_request(r)
-                return full_res
+                    msg = res.json.get('error_description') or res.json  # If none, raise the whole JSON
+                    raise AuthError(msg=msg, http_response=res, http_request=r, e=e)
             else:
-                msg = _safe_getitem(full_res.json, 'error', 'message') or _safe_getitem(full_res.json, 'error_description')
-                raise ApiError(msg=msg, http_response=full_res, http_request=r, e=e)
+                msg = _safe_getitem(res.json, 'error', 'message') or _safe_getitem(res.json, 'error_description')
+                raise ApiError(msg=msg, http_response=res, http_request=r, e=e)
         else:
-            return full_res
+            return res
 
     @_prep_request
     async def _check_authorization(self, **kwargs):
@@ -234,14 +199,17 @@ class AsyncSpotify(BaseClient):
         self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    async def build_user_creds(self, grant, state=None, set_user_creds=True):
+    async def build_user_creds(self, grant, state=None, enforce_state_check=None, set_user_creds=True):
         '''
         Second part of OAuth authorization code flow, Raises an AuthError if unauthorized
         Parameters:
             - grant: Code returned to user after authorizing your application
             - state: State returned from oauth callback
+            - enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
             - set_user_creds: Whether or not to set the user created to the client as the current active user
         '''
+        if enforce_state_check is not None:
+            self.enforce_state_check = enforce_state_check
         self._check_for_state(grant, state, set_user_creds)
 
         # Get user creds
@@ -265,13 +233,11 @@ class AsyncSpotify(BaseClient):
         ''' Lists user's devices '''
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    #@_nullable_response
     @_prep_request
     async def play(self, resource_id=None, resource_type='track', device_id=None, offset_position=None, position_ms=None, **kwargs):
         ''' Available types: 'track', 'artist', 'playlist', 'podcast', 'user' not sure if there's more'''
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def pause(self, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -290,27 +256,22 @@ class AsyncSpotify(BaseClient):
     async def recently_played_tracks(self, limit=None, after=None, before=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def next(self, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def previous(self, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def repeat(self, state='context', device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def seek(self, position_ms, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def shuffle(self, state=True, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -319,7 +280,6 @@ class AsyncSpotify(BaseClient):
     async def playback_transfer(self, device_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def volume(self, volume_percent, device_id=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -345,28 +305,23 @@ class AsyncSpotify(BaseClient):
         r =  self._prep_follows_playlist(playlist_id, user_ids)
         return (await self._send_authorized_request(r)).json
 
-    @_nullable_response
     async def create_playlist(self, name, description=None, public=False, collaborative=False, **kwargs):
         user_id = await _set_and_get_me_attr_async(self, 'id')
         r = self._prep_create_playlist(name, user_id, description, public, collaborative)
         return (await self._send_authorized_request(r)).json
 
-    @_nullable_response
     @_prep_request
     async def follow_playlist(self, playlist_id, public=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def update_playlist(self, playlist_id, name=None, description=None, public=None, collaborative=False, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def unfollow_playlist(self, playlist_id, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def delete_playlist(self, playlist_id, **kwargs):
         ''' an alias to unfollow_playlist''' 
@@ -380,18 +335,15 @@ class AsyncSpotify(BaseClient):
     async def playlist_tracks(self, playlist_id, market=None, fields=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def add_playlist_tracks(self, playlist_id, track_ids, position=None, **kwargs):
         ''' track_ids can be a list of track ids or a string of one track_id'''
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def reorder_playlist_track(self, playlist_id, range_start=None, range_length=None, insert_before=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def delete_playlist_tracks(self, playlist_id, track_uris, **kwargs):
         ''' 
@@ -435,12 +387,10 @@ class AsyncSpotify(BaseClient):
     async def owns_tracks(self, track_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def save_tracks(self, track_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def delete_tracks(self, track_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -455,7 +405,6 @@ class AsyncSpotify(BaseClient):
     async def _artist(self, artist_id, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def followed_artists(self, after=None, limit=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -464,12 +413,10 @@ class AsyncSpotify(BaseClient):
     async def follows_artists(self, artist_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def follow_artists(self, artist_ids, **kwargs):       
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def unfollow_artists(self, artist_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -502,12 +449,10 @@ class AsyncSpotify(BaseClient):
     async def owns_albums(self, album_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def save_albums(self, album_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def delete_albums(self, album_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -515,12 +460,15 @@ class AsyncSpotify(BaseClient):
 ##### Users
 
     @property
-    async def me(self):
-        res = (await self._send_authorized_request(super(self.__class__, self)._prep_me())).json
+    @_prep_request
+    async def me(self, **kwargs):
+        return (await self._send_authorized_request(kwargs['r'])).json
 
     @property
     async def is_premium(self):
-        res = (await self._send_authorized_request(super(self.__class__, self)._prep_is_premium())).json
+        if (await self.me).get('type') == 'premium':
+            return True
+        return False
 
     @_prep_request
     async def user_profile(self, user_id, **kwargs):
@@ -530,12 +478,10 @@ class AsyncSpotify(BaseClient):
     async def follows_users(self, user_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def follow_users(self, user_ids, **kwargs):       
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def unfollow_users(self, user_ids, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
@@ -560,7 +506,6 @@ class AsyncSpotify(BaseClient):
     async def user_top_artists(self, time_range=None, limit=None, offset=None, **kwargs):
         return (await self._send_authorized_request(kwargs['r'])).json
 
-    @_nullable_response
     @_prep_request
     async def next_page(self, response=None, url=None, **kwargs):
         '''
@@ -572,7 +517,6 @@ class AsyncSpotify(BaseClient):
         await asyncio.sleep(0)  # To remove the "never awaited" warning
         return {}
 
-    @_nullable_response
     @_prep_request
     async def previous_page(self, response=None, url=None, **kwargs):
         '''

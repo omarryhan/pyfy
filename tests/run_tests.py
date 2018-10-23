@@ -23,7 +23,7 @@ def run():
 
     if client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async =='true':  # Run unit tests then integration tests
         print('Running unit tests followed by integration tests')
-        pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/'])
+        pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_sync/', 'tests/test_integration/test_async/'])
     elif client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async !='true':  # Run unit tests then integration tests
         print('Running unit tests followed by synchronous integration tests')
         pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_sync/'])

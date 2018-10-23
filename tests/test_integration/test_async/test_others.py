@@ -20,37 +20,37 @@ async def test_artist_top_tracks(async_spotify_user_auth, depeche_mode_artist_id
 
 async def test_next_search(async_spotify_user_auth):
     result = await async_spotify_user_auth.search('love', 'track', limit=2)
-    assert await len(result) > 0
+    assert len(result) > 0
     next_ = await async_spotify_user_auth.next_page(result)
-    assert await len(next_) > 0
+    assert len(next_) > 0
     next_2 = await async_spotify_user_auth.next_page(next_)
-    assert await next_ != next_2
-    assert await len(next_2) > 0
+    assert next_ != next_2
+    assert len(next_2) > 0
 
 async def test_previous_search(async_spotify_user_auth):
     result = await async_spotify_user_auth.search('stars', 'track', limit=2)
-    assert await len(result) > 0
+    assert len(result) > 0
     next_ = await async_spotify_user_auth.next_page(result)
     next_2 = await async_spotify_user_auth.next_page(next_)
     previous = await async_spotify_user_auth.previous_page(next_2)
-    assert await len(previous) > 0
-    assert await previous == next_
-    assert await len(previous) > 0
+    assert len(previous) > 0
+    assert previous == next_
+    assert len(previous) > 0
 
 async def test_next_featured_playlists(async_spotify_user_auth):
     result = await async_spotify_user_auth.featured_playlists(limit=2)
-    assert await len(result) > 0
+    assert len(result) > 0
     next_ = await async_spotify_user_auth.next_page(result)
-    assert await len(next_) > 0
+    assert len(next_) > 0
 
 async def test_next_recently_played_tracks(async_spotify_user_auth):
     result = await async_spotify_user_auth.recently_played_tracks(limit=2)
-    assert await len(result) > 0
+    assert len(result) > 0
     next_ = await async_spotify_user_auth.next_page(result)
-    assert await len(next_) > 0
+    assert len(next_) > 0
 
 async def test_next_user_albums(async_spotify_user_auth):
     result = await async_spotify_user_auth.user_albums(limit=2)
-    assert await len(result) > 0
+    assert len(result) > 0
     next_ = await async_spotify_user_auth.next_page(result)
-    assert await len(next_) > 0
+    assert len(next_) > 0

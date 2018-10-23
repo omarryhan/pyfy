@@ -3,14 +3,11 @@ import secrets
 from urllib import parse
 from functools import wraps
 from json.decoder import JSONDecodeError
-from aiohttp import ContentTypeError
 from inspect import iscoroutinefunction
 try:
     import ujson as json
 except:
     import json
-
-from requests import Response
 
 
 def _create_secret(bytes_length=32):
@@ -132,7 +129,7 @@ def _prep_request(f):
      '''
 
     # This decorator should be locked down to not implement any more functionalities as some
-    # methods do not use this decorator e.g. `Spotify.me`. Changing it might cause inconsistent results.
+    # methods do not use this decorator e.g. `AsyncSpotify.follows_playlist && create_playlistf`. Changing it might cause inconsistent results.
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         super_f_name = '_prep_' + f.__name__
@@ -242,57 +239,4 @@ def _nullable_response(f):
             return {}
         else:
             return original_response
-
-    @wraps(f)
-    async def async_wrapper(*args, **kwargs):
-        try:
-            original_response = await f(*args, **kwargs)
-        except ContentTypeError as e:
-            return {}
-            #if e.request_info == 0:
-            #    return {}  # If response is empty return, else raise the error
-            #else:
-            #    raise e
-        else:
-            if hasattr(original_response, 'json') is False:
-                original_response.json = {}
-            if original_response.json is None:
-                original_response.json = {}
-            return original_response
-
-    if iscoroutinefunction(f):
-        return async_wrapper
     return wrapper
-
-@_nullable_response
-async def _resolve_async_response(res):
-    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
-    full_res = _Dict()
-    keys_and_attrs = [(key, getattr(res, key)) for key in dir(res) if not key.startswith('_')]
-    async with res:
-        for key, attr in keys_and_attrs:
-            # NOTE: It is not possible to use read(), json() or text() after explicit reading from content.
-            if iscoroutinefunction(attr):
-                if key == 'json':
-                    setattr(full_res, key, await attr(loads=json.loads))  # awaits aiohttp.ClientResponse.json()
-            else:
-                if key == 'status':
-                    setattr(full_res,  'status_code', attr)
-                else:
-                    setattr(full_res, key, attr)
-    return full_res
-
-@_nullable_response
-def _resolve_response(res):
-    ''' Function to convert and resolve future responses from aiohttp for more stable error handling '''
-    awaited_res = _Dict()
-    keys_and_attrs = [(key, getattr(res, key)) for key in dir(res) if not key.startswith('_')]
-    for key, attr in keys_and_attrs:
-        if iscoroutinefunction(attr):
-            continue
-        else:
-            if key == 'status':
-                setattr(awaited_res,  'status_code', attr)
-            else:
-                setattr(awaited_res, key, attr)
-    return awaited_res
