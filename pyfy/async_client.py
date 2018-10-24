@@ -14,7 +14,7 @@ from .creds import (
     ClientCreds,
     _set_empty_user_creds_if_none
 )
-from .excs import ApiError, AuthError
+from .excs import ApiError, AuthError, _TooManyRequests
 from .utils import (
     _safe_getitem,
     _locale_injectable,
@@ -22,7 +22,7 @@ from .utils import (
     _prep_request
 )
 from.base_client import (
-    BaseClient,
+    _BaseClient,
     TOKEN_EXPIRED_MSG,
     BASE_URI,
 )
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class AsyncSpotify(BaseClient):
+class AsyncSpotify(_BaseClient):
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, proxies=None, proxy_auth=None, timeout=7,
                 max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, populate_user_creds=True, max_connections=1000):
         '''
@@ -75,16 +75,20 @@ class AsyncSpotify(BaseClient):
         return None
 
     @property
-    def timeout_manager(self):
+    def _timeout_manager(self):
         return ClientTimeout(
             total=self.timeout,
             sock_read=1  # CHANGE ME!!
         )
 
     @property
-    def tcp_connector(self):
+    def _tcp_connector(self):
         # NOTE: limit_per_host (int) – limit for simultaneous connections to the same endpoint. Endpoints are the same if they are have equal (host, port, is_ssl) triple.
         return TCPConnector(limit_per_host=self.max_connections, enable_cleanup_closed=True)
+
+    @property
+    def _session(self):
+        return ClientSession(json_serialize=json.dumps, connector=self._tcp_connector)
 
     async def _send_authorized_request(self, r):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
@@ -94,15 +98,16 @@ class AsyncSpotify(BaseClient):
 
     async def _send_request(self, r):
         # workaround to support setting instance specific timeouts and maxretries. (You can't set pass self to a decorator)
+        # Didn't include ApiError in the list of exceptions because you can't specify the HTTP methods that `backoff` should retry on. For safety, retrying should only be performed on idempotent HTTP methods.
         return await backoff.on_exception(
             wait_gen=lambda: backoff.expo(factor=self.backoff_factor),
-            exception=(TimeoutError, asyncio.TimeoutError),  # Not sure why this isn't working properly???
+            exception=(_TooManyRequests, TimeoutError),
             max_tries=self.max_retries,
             max_time=self.timeout
         )(self._handle_send_request)(r)
 
     async def _handle_send_request(self, r):
-        async with ClientSession(json_serialize=json.dumps, connector=self.tcp_connector) as sess:
+        async with self._session as sess:
             res = await sess.request(
                 url=r.get('url'),
                 headers=r.get('headers'),
@@ -111,7 +116,7 @@ class AsyncSpotify(BaseClient):
                 method=r.get('method'),
                 proxy=self.proxies,
                 proxy_auth=self.proxy_auth,
-                timeout=self.timeout_manager
+                timeout=self._timeout_manager
             )
             async with res:
                 res.status_code = res.status
@@ -121,7 +126,7 @@ class AsyncSpotify(BaseClient):
                     res.json = await res.json(content_type=None) or {}
         try:
             res.raise_for_status()
-        except (TimeoutError, asyncio.TimeoutError) as e:
+        except TimeoutError as e:
             print('\nRequest timed out, try increasing the timeout period\n')
             raise e
         except ClientResponseError as e:
@@ -136,6 +141,9 @@ class AsyncSpotify(BaseClient):
                 else:
                     msg = res.json.get('error_description') or res.json  # If none, raise the whole JSON
                     raise AuthError(msg=msg, http_response=res, http_request=r, e=e)
+            elif res.status_code == 429:  # Too many requests
+                msg = _safe_getitem(res.json, 'error', 'message') or _safe_getitem(res.json, 'error_description')
+                raise _TooManyRequests(msg=msg, http_response=res, http_request=r, e=e)
             else:
                 msg = _safe_getitem(res.json, 'error', 'message') or _safe_getitem(res.json, 'error_description')
                 raise ApiError(msg=msg, http_response=res, http_request=r, e=e)
@@ -345,23 +353,23 @@ class AsyncSpotify(BaseClient):
         return (await self._send_authorized_request(kwargs['r'])).json
 
     @_prep_request
-    async def delete_playlist_tracks(self, playlist_id, track_uris, **kwargs):
-        ''' 
-        track_uris types supported:
-        1) 'track_uri'
-        2) ['track_uri', 'track_uri', 'track_uri']
+    async def delete_playlist_tracks(self, playlist_id, track_ids, **kwargs):
+        '''
+        track_ids types supported:
+        1) 'track_id'
+        2) ['track_id', 'track_id', 'track_id']
         3) [
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': [
                     position1, position2
                 ]
             },
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': position1
             },
-            track_uri
+            track_id
         ]
         '''
         # https://developer.spotify.com/console/delete-playlist-tracks/

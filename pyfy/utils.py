@@ -53,7 +53,7 @@ def _get_key_recursively(response, key, limit):
 
 
 def _set_and_get_me_attr_sync(self, attr_name):
-    ''' either populates user creds from spotify or just calls self.me and only gets the attr_name passed '''
+    ''' either populates user creds from spotify or just calls self.me and gets (and sets) the attr_name passed '''
     # if attribute doesn't exist or if it exists but is set to None, do:
     if (not hasattr(self.user_creds, attr_name)) or (hasattr(self.user_creds, attr_name) and getattr(self.user_creds, attr_name) is None):
         if self._populate_user_creds_ is True:

@@ -34,7 +34,7 @@ OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 OAUTH_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
 
 
-class BaseClient:
+class _BaseClient:
     def __init__(self, access_token, client_creds, user_creds, ensure_user_auth, proxies, timeout,
                 max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds):
         '''
@@ -433,53 +433,53 @@ class BaseClient:
         data = dict(range_start=range_start, range_length=range_length, insert_before=insert_before)
         return self._create_request(method='PUT', url=_build_full_url(url, params), json=_safe_json_dict(data))
 
-    def _prep_delete_playlist_tracks(self, playlist_id, track_uris):
+    def _prep_delete_playlist_tracks(self, playlist_id, track_ids):
         ''' 
-        track_uris types supported:
-        1) 'track_uri'
-        2) ['track_uri', 'track_uri', 'track_uri']
+        track_ids types supported:
+        1) 'track_id'
+        2) ['track_id', 'track_id', 'track_id']
         3) [
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': [
                     position1, position2
                 ]
             },
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': position1
             },
-            track_uri
+            track_id
         ]
         '''
         # https://developer.spotify.com/console/delete-playlist-tracks/
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
         params = {}
-        if type(track_uris) == str:
-            track_uris = list(track_uris)
-        if type(track_uris) == list:
+        if type(track_ids) == str:
+            track_ids = list(track_ids)
+        elif type(track_ids) == list:
             data = {
                 'tracks': []
             }
-            for track_uri in track_uris:
-                if type(track_uri) == str:
+            for track_id in track_ids:
+                if type(track_id) == str:
                     data['tracks'].append(
                         {
-                            'uri': 'spotify:track:' + track_uri
+                            'uri': 'spotify:track:' + track_id
                         }
                     )
-                elif type(track_uri) == dict:
-                    positions = track_uri.get('positions')
+                elif type(track_id) == dict:
+                    positions = track_id.get('positions')
                     if type(positions) == str or int:
                         positions = [positions]
                     data['tracks'].append(
                         {
-                            'uri': 'spotify:track:' + track_uri['uri'],
+                            'uri': 'spotify:track:' + track_id['id'],
                             'positions': positions
                         }
                     )
         else:
-            raise TypeError('track_uris must be an instance of list or string')
+            raise TypeError('track_ids must be an instance of list or string')
         return self._create_request(method='DELETE', url=_build_full_url(url, params), json=data)
 
 #### Tracks

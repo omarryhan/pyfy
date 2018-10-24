@@ -25,7 +25,7 @@ from .utils import (
     _set_and_get_me_attr_sync
 )
 from .base_client import (
-    BaseClient,
+    _BaseClient,
     TOKEN_EXPIRED_MSG,
     BASE_URI,
 )
@@ -34,7 +34,7 @@ from .base_client import (
 logger = logging.getLogger(__name__)
 
 
-class Spotify(BaseClient):
+class Spotify(_BaseClient):
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
                 max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True, populate_user_creds=True):
         '''
@@ -334,23 +334,23 @@ class Spotify(BaseClient):
 
     @_nullable_response
     @_prep_request
-    def delete_playlist_tracks(self, playlist_id, track_uris, **kwargs):
-        ''' 
-        track_uris types supported:
-        1) 'track_uri'
-        2) ['track_uri', 'track_uri', 'track_uri']
+    def delete_playlist_tracks(self, playlist_id, track_ids, **kwargs):
+        '''
+        track_ids types supported:
+        1) 'track_id'
+        2) ['track_id', 'track_id', 'track_id']
         3) [
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': [
                     position1, position2
                 ]
             },
             {
-                'uri': track_uri,
+                'id': track_id,
                 'positions': position1
             },
-            track_uri
+            track_id
         ]
         '''
         # https://developer.spotify.com/console/delete-playlist-tracks/

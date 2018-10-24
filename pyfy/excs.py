@@ -67,3 +67,7 @@ class AuthError(SpotifyError):
         super_msg = self._build_super_msg(msg, http_response, http_request, e)
         logger.error(super_msg)
         super(AuthError, self).__init__(super_msg)
+
+
+class _TooManyRequests(ApiError):
+    pass

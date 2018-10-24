@@ -11,11 +11,11 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='pyfy',
-    version="0.0.17",
+    version="1.0.0",
     author='Omar Ryhan',
     author_email='omarryhan@gmail.com',
     license='MIT',
-    description="Lightweight python wrapper for Spotify's web API",
+    description="Sync/Async API wrapper for Spotify's web API",
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=requirements,

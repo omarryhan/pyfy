@@ -41,11 +41,11 @@ async def test_delete_playlist_tracks(async_spotify_user_auth, new_playlist_id, 
         new_playlist_id,
         [
             {
-                'uri': gods_plan_track_id,
+                'id': gods_plan_track_id,
                 'positions': 0
             },
             {
-                'uri': them_bones_track_id,
+                'id': them_bones_track_id,
                 'positions': 1
             }  
         ]

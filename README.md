@@ -12,19 +12,20 @@
 ## Features
 
 - Async and Sync clients
-- Support for:
+- Authenticate using:
   - OAuth2 client credentials flow
   - OAuth2 authroization code flow
   - Access token only authorization
-- Automatically refreshes tokens for client and users
+- Covers every parameter for every endpoint in Spotify's Web API
+- Automatically refreshes tokens for clients and users
 - Descriptive errors
+- Able to automatically default to user's locales
+- Rate limiting
+- HTTP and SOCKS proxies
+- HTTP caching (Sync only)
 - Unit and integration tested
 - Fit for both production and experimental/personal environments
-- Able to automatically default to user's locales
-- Neatly handles type conversions when necessary
-- Support for HTTP caching (Sync only)
-- Rate limiting
-- support for HTTP and SOCKS Proxies
+- Begginner friendly interface
 
 ## Quick Start
 
@@ -58,7 +59,7 @@
 
 ## Authentication and Authorization
 
-### 1. By User's Access Token: *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
+### 1. With User's Access Token:  *[get from here](https://beta.developer.spotify.com/console/get-current-user/)
 
     from pyfy import Spotify
 
@@ -72,7 +73,7 @@
     spt = Spotify(client_creds=client)
     spt.authorize_client_creds()
 
-### 3. With Authorization Code Flow (OAuth2) *[example here](https://github.com/omarryhan/Pyfy/tree/master/examples)
+### 3. With Authorization Code Flow (OAuth2) *[examples with Sanic(async) and Flask(sync) here](https://github.com/omarryhan/Pyfy/tree/master/examples)
 
     from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
 
@@ -103,6 +104,7 @@
             abort(500)
 
 ### 👨 Ways to load Credentials (User & Client)
+
     # Instantiate directly
     client = ClientCreds(client_id='aclientid', client_secret='averysecrettok**')
 
@@ -190,6 +192,22 @@
 
     $ pip install -U pyfy
 
+**Optional for Async:**
+
+- Faster encoding detector lib written in C:
+
+      $ pip install cchardet  
+
+- Async DNS requests:
+
+      $ pip install aiodns
+
+**Optional for Sync & Async:**
+
+- Faster JSON parser written in C:
+  
+      $ pip install ujson
+
 ## Testing
 
 ### Unit tests:
@@ -202,17 +220,18 @@
 2. Now you can safely save your keys there for testing purposes. Here's an example:
     1. `SPOTIFY_CLIENT_ID` Create an app from [here](https://developer.spotify.com/dashboard/applications)
     2. `SPOTIFY_CLIENT_SECRET` Create an app from [here](https://developer.spotify.com/dashboard/applications)
-    3. `SPOTIFY_ACCESS_TOKEN` Get a Spotify token from [here](https://beta.developer.spotify.com/console/get-current-user/)  ****Check all scopes**
-    4. `SPOTIFY_REDIRECT_URI` = 'http://localhost:5000/callback/spotify',  # You have to register this call back in your Application's dashboard https://developer.spotify.com/dashboard/applications
-    5. `PYFY_TEST_INTEGRATION` = true
+    3. `SPOTIFY_ACCESS_TOKEN` Get a Spotify token from [here](https://developer.spotify.com/console/get-current-user/)  ****Check all scopes**
+    4. `SPOTIFY_REFRESH_TOKEN` To avoid manually refreshing your access token from the dev console, run the Oauth2 example in the examples dir. Then copy and paste the refresh token returned here. 
+    5. `SPOTIFY_REDIRECT_URI` = 'http://localhost:5000/callback/spotify',  # You have to register this callback in your Application's dashboard https://developer.spotify.com/dashboard/applications
+    6. `PYFY_TEST_INTEGRATION_SYNC` = 'true'
+    7. `PYFY_TEST_INTEGRATION_ASYNC` = 'true'
 3. Run:
 
     *This will run some tests using your client ID, client secret and access token.<br>
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
-    *The tests will carefully teardown all resources created<br>
+    *Tests will carefully teardown all resources created and/or modified<br>
     *Integration tests will not be abusive to the API and should only test for successful integration with minimum API calls<br>
-    *OAuth2 flow isn't tested in the tests folder. Instead you can test it manually from the examples folder by running: `pip install flask pyfy && python examples/oauth2.py`<br>
-    *Use the [documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
+    *OAuth2 flow isn't tested in the tests folder (yet). Instead you can manually test it in the examples folder by running: `pip install flask pyfy && python examples/oauth2.py`<br>
 
         $ tox
 
@@ -241,6 +260,7 @@
 - ClientCreds
 
   - pickle()
+  - unpickle()  # Class method
   - save_as_json()
   - load_from_json()
   - load_from_env()
@@ -257,6 +277,7 @@
 - UserCreds
 
   - pickle()
+  - unpickle()  # Class method
   - save_as_json()
   - load_from_json()
   - load_from_env()
@@ -268,6 +289,8 @@
   - user_id
   - state
 
+### Clients
+
 - Spotify
 
   - client_creds
@@ -278,8 +301,27 @@
   - is_active
   - is_premium
   - build_user_creds()
+  - populate_user_creds()
 
-  - Resources....
+  - *resources*.... 
+
+- AsyncSpotify
+
+  - client_creds
+  - user_creds
+  - coro: authorize_client_creds()
+  - oauth_uri
+  - is_oauth_ready
+  - coro: is_active
+  - coro: is_premium
+  - coro: build_user_creds()
+  - coro: populate_user_creds()
+
+  - *resources*....
+
+## Please Note:
+
+- Use the [documentation](https://developer.spotify.com/documentation/web-api/reference/) instead of the [console](https://developer.spotify.com/console/get-album/?id=0sNOF9WDwhWunNAHPD3Baj) for reading the docs, as some console endpoints aren't up to date with the documentation. Namely: 1. Create User Playlist 2. Recommendations<br>
 
 ## Contribute
 

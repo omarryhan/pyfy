@@ -5,5 +5,5 @@ KEYS = {
     'SPOTIFY_ACCESS_TOKEN': 'PLACEHOLDER_ACCESS_TOKEN',  # Get a Spotify token from [here](https://beta.developer.spotify.com/console/get-current-user/)  ****Check all scopes**
     'SPOTIFY_USER_ID': 'PLACEHOLDER_USER_ID',  # Get your Spotify ID from [here](https://www.spotify.com/account/overview/) 
     'PYFY_TEST_INTEGRATION_SYNC': 'false',  # set to true for sync integration testing
-    'PYFY_TEST_INTEGRATION_ASYNC': 'false'  # 
+    'PYFY_TEST_INTEGRATION_ASYNC': 'false'  # set to true for async integration testing
 }

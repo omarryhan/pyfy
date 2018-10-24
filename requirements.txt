@@ -3,6 +3,3 @@ requests[socks]
 cachecontrol
 aiohttp
 backoff
-# cchardet  # Recommended
-# aiodns  # Recommended
-# ujson  # Recommended
