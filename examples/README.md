@@ -1,11 +1,16 @@
 # Examples
 
-## 1. OAUTH2 (Requires Flask)
+## 1. oauth2.py (Requires Flask)
 
-### Requiremetns:
+### Goal
+
+- Demonstrate how a client should perform oauth2 authorization code flow.
+- Show some user resources
+
+### Requirements and steps:
 
 1. Copy `spt_keys_template.py` to a new file and name it `spt_key.py`
-2. Fillout the newly created file with your credentials
+2. Fillout the newly created file with your credentials (Only Client secret and Client Id are required for this example. You can leave the rest empty)
 3. Register your callbacks here: https://developer.spotify.com/dashboard/applications/
 4. Download any browser extension that pretty prints JSON data. [e.g.](https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc?hl=en) 
   
@@ -13,17 +18,36 @@
 
     $pip install pyfy flask && python examples/oauth2.py
 
-- The example will guide you through Spotify's OAuth2 authorization code flow and show you your user credentials
 
-## 2. OAUTH2 async (Requires Sanic)
+## 2. oauth2_async.py (Requires Sanic)
 
-### Requirements:
+### Goal
+
+- Demonstrate how a client should perform oauth2 authorization code flow asynchronously.
+- Show some user resources
+
+### Requirements and steps:
 
 1. Copy `spt_keys_template.py` to a new file and name it `spt_key.py`
-2. Fillout the newly created file with your credentials
+2. Fillout the newly created file with your credentials (Only Client secret and Client Id are required for this example. You can leave the rest empty)
 3. Register your callbacks here: https://developer.spotify.com/dashboard/applications/
 4. Download any browser extension that pretty prints JSON data. [e.g.](https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc?hl=en) 
 
     $pip install pyfy sanic && python examples/oauth2_async.py
 
-- The example will guide you through Spotify's OAuth2 authorization code flow and show you your user credentials
+
+## 3. save_user_creds.py (Requires Sanic)
+
+### Goal
+
+- Save your user credentials to disk after perfoming Oauth2 authorization code flow to make it easier accessing your user credentials afterwards.
+
+### Requirements and steps:
+
+1. Copy `spt_keys_template.py` to a new file and name it `spt_key.py`
+2. Fillout the newly created file with your credentials (Only Client secret and Client Id are required for this example. You can leave the rest empty)
+3. Register your callbacks here: https://developer.spotify.com/dashboard/applications/
+4. Download any browser extension that pretty prints JSON data. [e.g.](https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc?hl=en) 
+
+    $pip install pyfy sanic && python examples/save_user_creds.py
+

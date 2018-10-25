@@ -77,8 +77,7 @@ class AsyncSpotify(_BaseClient):
     @property
     def _timeout_manager(self):
         return ClientTimeout(
-            total=self.timeout,
-            sock_read=1  # CHANGE ME!!
+            total=self.timeout
         )
 
     @property
@@ -97,8 +96,9 @@ class AsyncSpotify(_BaseClient):
         return await self._send_request(r)
 
     async def _send_request(self, r):
-        # workaround to support setting instance specific timeouts and maxretries. (You can't set pass self to a decorator)
-        # Didn't include ApiError in the list of exceptions because you can't specify the HTTP methods that `backoff` should retry on. For safety, retrying should only be performed on idempotent HTTP methods.
+        # workaround to support setting instance specific timeouts and maxretries. (You can't pass `self` to a decorator)
+        # Didn't include ApiError in the list of exceptions because you specifying the HTTP methods that `backoff` should retry on is not allowed.
+        # For safety, retrying should only be performed on idempotent HTTP methods.
         return await backoff.on_exception(
             wait_gen=lambda: backoff.expo(factor=self.backoff_factor),
             exception=(_TooManyRequests, TimeoutError),

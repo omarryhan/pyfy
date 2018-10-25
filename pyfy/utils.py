@@ -195,8 +195,6 @@ def _convert_to_iso_date(date):
 
 def convert_from_iso_date(date):
     ''' utility method that can convert dates returned from Spotify's API '''
-    if not isinstance(date, datetime.datetime):
-        raise TypeError('date must be of type datetime.datetime')
     return datetime.date.fromisoformat(date)
 
 class _Dict(dict):
