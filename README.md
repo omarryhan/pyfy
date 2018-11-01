@@ -205,23 +205,25 @@
 
 ## Installation and Setup
 
-    $ pip install -U pyfy
+    $ pip install --upgrade --user pyfy
+
+**For Python3.7:**
+
+    $ python3.7 -m pip install --upgrade --user pyfy
 
 **Optional for Async:**
 
 - Faster encoding detector lib written in C:
 
-      $ pip install cchardet  
+      $ pip install --user cchardet  
 
 - Async DNS requests:
 
-      $ pip install aiodns
-
-**Optional for Sync & Async:**
+      $ pip install --user aiodns
 
 - Faster JSON parser written in C:
   
-      $ pip install ujson
+      $ pip install --user ujson
 
 ## Testing
 
