@@ -17,6 +17,7 @@ async def test_gather(async_spotify_user_auth):
 
     for result in results:
         assert isinstance(result, dict)
+        assert len(result) != 0
 
 def test_gather_now(async_spotify_user_auth):
     spt = async_spotify_user_auth
@@ -30,3 +31,4 @@ def test_gather_now(async_spotify_user_auth):
 
     for result in results:
         assert isinstance(result, dict)
+        assert len(result) != 0

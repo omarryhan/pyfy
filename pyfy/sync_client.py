@@ -1,7 +1,3 @@
-try:
-    import json
-except:
-    import ujson
 import logging
 import datetime
 from urllib import parse

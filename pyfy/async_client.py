@@ -94,15 +94,18 @@ class AsyncSpotify(_BaseClient):
     def _session(self):
         return ClientSession(json_serialize=json.dumps, connector=self._tcp_connector)
 
-    async def _gather(self, *coros, return_exceptions=False, refresh_first=True):
+    async def _gather(self, *coros, return_exceptions, refresh_first):
         if refresh_first is True:
             await self._refresh_token()
         requests = [await coro for coro in coros]  # To return their request model, not an actual response
-        responses = await self._send_authorized_requests(*requests, return_exceptions=return_exceptions, gather=True)
+        for request in requests:
+            if 'headers' not in request:
+                raise TypeError('Invalid requests batch. Maybe you forgot to set "to_gather" to True?')
+        responses = await self._send_authorized_requests(*requests, return_gather_exceptions=return_exceptions, gather=True)
         json_responses = [getattr(response, 'json', response) for response in responses]  # Return JSON res else response object
         return json_responses
 
-    async def gather(self, *coros, return_exceptions=False, refresh_first=True):
+    async def gather(self, *coros, return_exceptions=False, refresh_first=False):
         ''' 
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
         
@@ -113,7 +116,7 @@ class AsyncSpotify(_BaseClient):
                 passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather  '''
         return await self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first)
 
-    def gather_now(self, *coros, return_exceptions=False, refresh_first=True):
+    def gather_now(self, *coros, return_exceptions=False, refresh_first=False):
         ''' 
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
 
@@ -132,27 +135,26 @@ class AsyncSpotify(_BaseClient):
         
         return loop.run_until_complete(self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first))
 
-    async def _send_authorized_requests(self, *reqs, return_exceptions=False, gather=False):
+    async def _send_authorized_requests(self, *reqs, return_gather_exceptions=False, gather=False):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
             await self._refresh_token()
         
         for req in reqs:
             req['headers'].update(self._access_authorization_header)
-        return await self._send_requests(*reqs, return_exceptions=return_exceptions, gather=gather)
+        return await self._send_requests(*reqs, return_gather_exceptions=return_gather_exceptions, gather=gather)
 
 
-    async def _send_requests(self, *reqs, return_exceptions=False, gather=False):
+    async def _send_requests(self, *reqs, return_gather_exceptions=False, gather=False):
         async with self._session as sess:
             if gather is True:
                 tasks = [asyncio.ensure_future(self._send_request_with_backoff(req, sess)) for req in reqs]
-                results = await asyncio.gather(*tasks, return_exceptions=return_exceptions)
+                results = await asyncio.gather(*tasks, return_exceptions=return_gather_exceptions)
             elif gather is False:
                 results = await self._send_request_with_backoff(reqs[0], sess)
             else:
                 await sess.close()
                 raise ValueError('Gather must be either True or False')
         return results
-
 
     async def _send_request_with_backoff(self, req, sess):
         # workaround to support setting instance specific timeouts and maxretries. (You can't pass `self` to a decorator)
