@@ -117,7 +117,7 @@ class AsyncSpotify(_BaseClient):
         ''' 
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
 
-        same `async def AsyncSpotify.gather` but can be called synchronously.
+        same as `async def AsyncSpotify.gather` but can be called synchronously.
         Creates a new event loop if None is running
 
         Parameters:
@@ -127,7 +127,7 @@ class AsyncSpotify(_BaseClient):
                 passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather '''
         try:
             loop = asyncio.get_running_loop()
-        except RuntimeError:
+        except (RuntimeError, AttributeError):  # Python 3.6 raises: AttributeError: module 'asyncio' has no attribute 'get_running_loop'
             loop = asyncio.get_event_loop()
         
         return loop.run_until_complete(self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first))
