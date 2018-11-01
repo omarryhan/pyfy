@@ -23,4 +23,4 @@ def test_user_is_rejected_with_bad_access_token(user_creds_from_env, client_cred
 
 def test_authenticated_user_is_authorized(user_creds_from_env, client_creds_from_env):
     spotify = Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
-    assert spotify.me
+    assert spotify.me()

@@ -41,12 +41,11 @@ def test_creds_pickle(user_creds_from_env):
     user_creds_from_env._delete_pickle()
 
 
-#def test_creds_pickle_loads_data_properly(user_creds_from_env):
-#    user_creds_from_env.pickle()
-#    new_user_creds = UserCreds()
-#    new_user_creds =new_user_creds.unpickle()
-#    assert new_user_creds.__dict__ == user_creds_from_env.__dict__
-#    user_creds_from_env._delete_pickle()
+def test_creds_pickle_loads_data_properly(user_creds_from_env):
+    user_creds_from_env.pickle()
+    new_user_creds = UserCreds.unpickle()
+    assert new_user_creds.__dict__ == user_creds_from_env.__dict__
+    user_creds_from_env._delete_pickle()
 
 
 def test_creds_json_flow(user_creds_from_env):

@@ -8,14 +8,14 @@ from pyfy.utils import _safe_getitem
 def spotify():
     yield Spotify()
 
-@fixture(scope='session')
+@fixture(scope='function')
 def client_creds_from_env_session():
     client = ClientCreds()
     client.load_from_env()
     client.show_dialog = 'true'
     yield client
 
-@fixture(scope='session')
+@fixture(scope='function')
 def user_creds_from_env_session():
     user = UserCreds()
     user.load_from_env()
@@ -36,7 +36,7 @@ def user_creds_from_env():
         raise AttributeError('User must have an access token for some tests to run')
     yield user
 
-@fixture(scope='function')
+@fixture(scope='session')
 def spotify_user_auth():
     spotify = Spotify()
     user_creds = UserCreds()
@@ -66,7 +66,6 @@ def spotify_client_auth():
     client_creds = ClientCreds()
     client_creds.load_from_env()
     spotify.client_creds = client_creds
-    spotify._caller = spotify.client_creds
     yield spotify
 
 @fixture(scope='function')
@@ -75,7 +74,6 @@ def async_spotify_client_auth():
     client_creds = ClientCreds()
     client_creds.load_from_env()
     spotify.client_creds = client_creds
-    spotify._caller = spotify.client_creds
     yield spotify
 
 #================================================================== Stubs ===================================================================#

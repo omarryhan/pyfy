@@ -30,7 +30,7 @@ async def test_user_is_rejected_with_bad_access_token(user_creds_from_env, clien
 
 async def test_authenticated_user_is_authorized(user_creds_from_env, client_creds_from_env):
     spotify = Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env)
-    assert await spotify.me
+    assert await spotify.me()
 
 async def test_user_refresh_token(user_creds_from_env, client_creds_from_env):
     spotify = Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env)

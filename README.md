@@ -46,16 +46,31 @@
 ### Async
 
     from pyfy import AsyncSpotify
-    from asyncio import ensure_future, get_event_loop, gather
+    from pprint import pprint
 
-    queries = ['Seize the day', 'Feel good inc', 'In your room', 'Tout Petit Moineau']
     spt = AsyncSpotify('your_access_token')
 
-    tasks = [ensure_future(spt.search(q)) for q in queries]
+    gathered_results = spt.gather_now(
+        spt.search('Seize the day', to_gather=True),
+        spt.search('Feel good inc'', to_gather=True),
+        spt.search('In your room', to_gather=True),
+        spt.search('Tout Petit Moineau', to_gather=True)
+    )
 
-    loop = get_event_loop()
-    results = loop.run_until_complete(gather(*tasks))
-    print(results)
+    pprint(gathered_results)
+
+*or if you have an event loop already running:*
+
+    from pyfy import AsyncSpotify
+
+    spt = AsyncSpotify('your_access_token')
+
+    gathered_results = await spt.gather(
+        spt.search('Saeed', to_gather=True),
+        spt.search('Killing time', to_gather=True),
+        spt.search('Project 100', to_gather=True),
+        spt.search('Tout Petit Moineau', to_gather=True)
+    )
 
 ## Authentication and Authorization
 
@@ -165,7 +180,7 @@
   - follow_artists()
   - artist_related_artists()
 - Users:
-  - me
+  - me()
   - is_premium
   - user_profile()
   - follows_users()

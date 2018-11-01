@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyfy = {path = "."}
+"flake8" = "*"
+pylint = "*"
+requests = {extras = ["socks"], version = "*"}
+ujson = "*"
+aiodns = "*"
+cchardet = "*"
+sanic = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+pytest-asyncio = "*"
+tox = "*"
+cachecontrol = "*"
+aiohttp = "*"
+backoff = "*"
+
+[dev-packages]
+sanic = "*"
+flask = "*"
+
+[requires]
+python_version = "3.6"

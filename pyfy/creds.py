@@ -40,7 +40,7 @@ ALL_SCOPES = [
 
 class _Creds:
     def __init__(self, *args, **kwargs):
-        raise TypeError('_Creds class isn\'nt calleable')
+        raise TypeError('_Creds class shouldn\'nt initiate attrs')
 
     def pickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
         if name is None:
