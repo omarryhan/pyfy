@@ -45,8 +45,8 @@
 
 ### Async
 
-    from pyfy import AsyncSpotify
     from pprint import pprint
+    from pyfy import AsyncSpotify
 
     spt = AsyncSpotify('your_access_token')
 
@@ -61,16 +61,20 @@
 
 *or if you have an event loop already running:*
 
+    import asyncio
     from pyfy import AsyncSpotify
 
     spt = AsyncSpotify('your_access_token')
 
-    gathered_results = await spt.gather(
-        spt.search('Saeed', to_gather=True),
-        spt.search('Killing time', to_gather=True),
-        spt.search('Project 100', to_gather=True),
-        spt.search('Tout Petit Moineau', to_gather=True)
-    )
+    async def runner():
+        return await spt.gather(
+            spt.search('Saeed', to_gather=True),
+            spt.search('Killing time', to_gather=True),
+            spt.search('Project 100', to_gather=True),
+            spt.search('Tout Petit Moineau', to_gather=True)
+        )
+
+    asyncio.run(runner())
 
 ## Authentication and Authorization
 
