@@ -46,7 +46,7 @@
 
 ### Async
 
-**Make a single call:**
+**1. Make a single call:**
 
     import asyncio
     from pyfy import AsyncSpotify
@@ -62,7 +62,8 @@
 
     awaited_search_result = asyncio.run(spt.search('A tout le monde'))
 
-**Make multiple calls using a single TCP connection (no async/await syntax):**
+**2. Make multiple calls using a single TCP connection (no async/await syntax):**
+
     from pprint import pprint
     from pyfy import AsyncSpotify
 
@@ -77,7 +78,7 @@
 
     pprint(gathered_results)
 
-**If you have an event loop already running:**
+**3. To manually await the results:**
 
     import asyncio
     from pyfy import AsyncSpotify
@@ -92,7 +93,7 @@
             spt.search('Tout Petit Moineau', to_gather=True)
         )
 
-    asyncio.run(runner())
+    results = asyncio.run(runner())
 
 ## Authentication and Authorization
 
