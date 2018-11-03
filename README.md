@@ -26,6 +26,7 @@
 - Unit and integration tested
 - Fit for both production and experimental/personal environments
 - Begginner friendly interface
+- Almost identical Async and Sync Interfaces
 
 ## Quick Start
 
@@ -45,6 +46,23 @@
 
 ### Async
 
+**Make a single call:**
+
+    import asyncio
+    from pyfy import AsyncSpotify
+
+    spt = AsyncSpotify('your_access_token')
+
+    async def query():
+        return await spt.search('Like a motherless child')
+
+    asyncio.run(query())
+
+*or even:*
+
+    awaited_search_result = asyncio.run(spt.search('A tout le monde'))
+
+**Make multiple calls using a single TCP connection (no async/await syntax):**
     from pprint import pprint
     from pyfy import AsyncSpotify
 
@@ -59,7 +77,7 @@
 
     pprint(gathered_results)
 
-*or if you have an event loop already running:*
+**If you have an event loop already running:**
 
     import asyncio
     from pyfy import AsyncSpotify
