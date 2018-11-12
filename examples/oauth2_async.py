@@ -1,5 +1,7 @@
 import os
+import aiofiles
 import webbrowser
+import json as stdlib_json
 
 from sanic import Sanic, response
 from sanic.response import json
@@ -42,11 +44,16 @@ async def spotify_callback(request):
             print(state)
             print(spt.user_creds.state)
             user_creds = await spt.build_user_creds(grant=grant, state=state, enforce_state_check=True)
+            user_creds.expiry = None
+            async with aiofiles.open(os.getcwd() + 'SPOTIFY_CREDS.json', 'w') as file:
+                await file.write(stdlib_json.dumps(user_creds.__dict__))
         except AuthError as e:
             return json(dict(error_description=e.msg, error_code=e.code), e.code)
         else:
             await spt.populate_user_creds()
-            return response.json(dict(user_creds=user_creds.__dict__, check_if_active=app.url_for('is_active', _scheme='http', _external=True, _server=local_full_address)), 200)
+            print(os.getcwd())
+            return await response.file(os.getcwd() + 'SPOTIFY_CREDS.json')
+            #return response.json(dict(user_creds=user_creds.__dict__, check_if_active=app.url_for('is_active', _scheme='http', _external=True, _server=local_full_address)), 200)
     else:
         return response.text('Something is wrong with your callback')
 

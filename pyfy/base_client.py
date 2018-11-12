@@ -36,6 +36,10 @@ OAUTH_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
 
 
 class _BaseClient:
+    ''' 
+    Serves both Async and Sync clients
+    Implements data parsing, building requests and almost all functionality that does not require any IO
+    '''
     def __init__(self, access_token, client_creds, user_creds, ensure_user_auth, proxies, timeout,
                 max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds):
         '''

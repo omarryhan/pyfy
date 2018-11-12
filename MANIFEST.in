@@ -4,6 +4,10 @@ graft pyfy/
 include requirements.txt
 include test_requirements.txt
 include README.md
-include spt_keys_template.py
+
 global-exclude *.pyc
-exclude *spt_keys.py
+global-exclude *spt_keys.py
+global-exclude */set_envs.sh
+global-exclude *tox_private.ini
+global-exclude *examples/
+global-exclude *.json

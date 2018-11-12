@@ -68,7 +68,7 @@ class AsyncSpotify(_BaseClient):
             timeout, max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds)
 
     async def populate_user_creds(self):
-        ''' populates self.user_creds with Spotify's info on user
+        ''' populates self.user_creds with Spotify's info on user.
         Data is fetched from self.me() and set to user recursively '''
         me = await self.me()
         if me:
@@ -128,12 +128,14 @@ class AsyncSpotify(_BaseClient):
                 Refresh first to avoid sending all requests at once while token isn't refreshed resulting in resending as many refresh requests
             return_exceptions:
                 passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather '''
-        try:
-            loop = asyncio.get_running_loop()
-        except (RuntimeError, AttributeError):  # Python 3.6 raises: AttributeError: module 'asyncio' has no attribute 'get_running_loop'
-            loop = asyncio.get_event_loop()
         
-        return loop.run_until_complete(self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first))
+        try:
+            # Python 3.7+
+            return asyncio.run(self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first))
+        except AttributeError:  # Python 3.6 raises: AttributeError: module 'asyncio' has no attribute 'get_running_loop'
+            # Python 3.6+
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self._gather(*coros, return_exceptions=return_exceptions, refresh_first=refresh_first))
 
     async def _send_authorized_requests(self, *reqs, return_gather_exceptions=False, gather=False):
         if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
@@ -157,9 +159,9 @@ class AsyncSpotify(_BaseClient):
         return results
 
     async def _send_request_with_backoff(self, req, sess):
-        # workaround to support setting instance specific timeouts and maxretries. (You can't pass `self` to a decorator)
-        # Didn't include ApiError in the list of exceptions because you specifying the HTTP methods that `backoff` should retry on is not allowed.
+        # workaround to support setting instance specific timeouts and maxretries. (Mainly because you can't pass `self` to a decorator)
         # For safety, retrying should only be performed on idempotent HTTP methods.
+        # That's why I didn't include the APIError exception in the list of exceptions.
         return await backoff.on_exception(
             wait_gen=lambda: backoff.expo(factor=self.backoff_factor),
             exception=(_TooManyRequests, TimeoutError, ClientConnectionError),  # Aiohttp exception hierarchy: https://docs.aiohttp.org/en/stable/client_reference.html?highlight=exceptions#hierarchy-of-exceptions
@@ -196,7 +198,8 @@ class AsyncSpotify(_BaseClient):
                     old_auth_header = r['headers']['Authorization']
                     await self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
-                    assert new_auth_header != old_auth_header  # Assert access token is changed to avoid infinite loops
+                    if new_auth_header == old_auth_header:
+                        raise RuntimeError('refresh_token() was called but token wasn\'t refreshed. Execution stopped to avoid infinite looping.')
                     r['headers'].update(new_auth_header)
                     return await self._send_requests(r)
                 else:
@@ -279,7 +282,7 @@ class AsyncSpotify(_BaseClient):
         self._check_for_state(grant, state, set_user_creds)
 
         # Get user creds
-        user_creds_json = (await self._request_user_creds(grant)).json
+        user_creds_json = (await self._request_user_creds(grant))
         user_creds_model = self._user_json_to_object(user_creds_json)
 
         # Set user creds
@@ -535,7 +538,7 @@ class AsyncSpotify(_BaseClient):
     @_dispatch_request
     @_default_to_locale('market')
     async def user_tracks(self, market=None, limit=None, offset=None, to_gather=False):
-        return dict(
+        return [], dict(
             market=market,
             limit=limit,
             offset=offset,

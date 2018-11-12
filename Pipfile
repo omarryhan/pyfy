@@ -20,6 +20,8 @@ tox = "*"
 cachecontrol = "*"
 aiohttp = "*"
 backoff = "*"
+flask = "*"
+aiofiles = "*"
 
 [dev-packages]
 sanic = "*"

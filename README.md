@@ -144,7 +144,7 @@
 ### 👨 Ways to load Credentials (User & Client)
 
     # Instantiate directly
-    client = ClientCreds(client_id='aclientid', client_secret='averysecrettok**')
+    client = ClientCreds(client_id='aclientid', client_secret='averysecrettoken')
 
     # Load from environment
     client = ClientCreds()
@@ -152,7 +152,7 @@
 
     # Load from json file
     client = ClientCreds()
-    client.load_from_json(path=<full/file/path>, name=files_name)
+    client.load_from_json(path='full/dir/path', name='name_of_the_json_file')
 
 ## 🎶 Resources
 
@@ -256,17 +256,15 @@
 
 ### Integration tests:
 
-1. Copy the `spt_keys_template.py` to a new file and call it `spt_keys.py` as this file will be automatically gitignored.
-2. Now you can safely save your keys there for testing purposes. Here's an example:
+1. Open tox.ini and change thoee values to:
     1. `SPOTIFY_CLIENT_ID` Create an app from [here](https://developer.spotify.com/dashboard/applications)
     2. `SPOTIFY_CLIENT_SECRET` Create an app from [here](https://developer.spotify.com/dashboard/applications)
     3. `SPOTIFY_ACCESS_TOKEN` Get a Spotify token from [here](https://developer.spotify.com/console/get-current-user/)  ****Check all scopes**
-    4. `SPOTIFY_REFRESH_TOKEN` To avoid manually refreshing your access token from the dev console, run the Oauth2 example in the examples dir. Then copy and paste the refresh token returned here. 
+    4. `SPOTIFY_REFRESH_TOKEN` To avoid manually refreshing your access token from the dev console, run the Oauth2 example in the examples dir. Then copy and paste the refresh token returned to your tox file. 
     5. `SPOTIFY_REDIRECT_URI` = 'http://localhost:5000/callback/spotify',  # You have to register this callback in your Application's dashboard https://developer.spotify.com/dashboard/applications
     6. `PYFY_TEST_INTEGRATION_SYNC` = 'true'
     7. `PYFY_TEST_INTEGRATION_ASYNC` = 'true'
-3. Run:
-
+2. Run:
     *This will run some tests using your client ID, client secret and access token.<br>
     *Unfortunately Spotify does not have a sandbox API, so we have to test it against the live API<br>
     *Tests will carefully teardown all resources created and/or modified<br>
@@ -365,8 +363,7 @@
 
 ## Contribute
 
-- Would be nice if someone can write some documentations. Maybe using Sphinx?
-- More unit and integration tests
+- All kinds of contributions are welcome :)
 
 ## Contributors
 

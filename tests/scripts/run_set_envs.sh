@@ -1,0 +1,1 @@
+(chmod u+x tests/set_envs.sh && tests/set_envs.sh) || (chmod u+x tests/set_envs_template.sh && tests/set_envs_template)

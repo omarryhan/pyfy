@@ -134,7 +134,7 @@ def _dispatch_request(*_args, authorized_request=True):
                     if authorized_request is True:
                         return (await self._send_authorized_requests(request)).json
                     else:
-                        return (await self._send_request(request)).json
+                        return (await self._send_requests(request)).json
                 else:
                     return {}
 

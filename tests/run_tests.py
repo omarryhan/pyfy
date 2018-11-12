@@ -1,17 +1,5 @@
 import os
 import pytest
-try:
-    from spt_keys import KEYS
-except:
-    from spt_keys_template import KEYS
-
-
-def export_keys():
-    for k, v in KEYS.items():
-        if v:
-            os.environ[k] = v
-            print("export " + k + "=" + v)
-
 
 def run():
     client_id = os.getenv('SPOTIFY_CLIENT_ID')
@@ -32,8 +20,8 @@ def run():
                 '--cov',
                 'pyfy/',
                 'tests/test_units/',
-                'tests/test_integration/test_async/',
                 'tests/test_integration/test_sync/',
+                'tests/test_integration/test_async/',
             ]
         )
     elif client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async !='true':  # Run unit tests then integration tests
@@ -48,5 +36,4 @@ def run():
 
 
 if __name__ == '__main__':
-    export_keys()
     run()

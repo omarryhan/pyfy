@@ -1,3 +1,6 @@
+*tox_private.ini
+*.json
+*/set_envs.sh
 *spt_keys.py
 *.vscode
 *.directory

@@ -2,7 +2,7 @@ import os
 import webbrowser
 
 from sanic import Sanic, response
-from sanic.response import json
+from sanic.response import json, text
 
 from pyfy import AsyncSpotify, ClientCreds, UserCreds, AuthError
 try:
@@ -47,8 +47,7 @@ async def spotify_callback(request):
         else:
             await spt.populate_user_creds()
             user_creds.save_as_json()
-            return response.text('Your user credentials where successfully saved, you can now easily ' +
-                'access them in any script by simply calling: user_creds.load_from_json()'), 200)
+            return response.text('Your user credentials where successfully saved, you can now easily access them in any script by simply calling: user_creds.load_from_json()')
     else:
         return response.text('Something is wrong with your callback')
 

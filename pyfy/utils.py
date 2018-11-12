@@ -130,5 +130,5 @@ class _Dict(dict):  # pragma: no cover
         self.__delitem__(item)
 
     def __delitem__(self, key):  # pragma: no cover
-        super(Map, self).__delitem__(key)
+        super(_Dict, self).__delitem__(key)
         del self.__dict__[key]

@@ -101,7 +101,8 @@ class Spotify(_BaseClient):
                     old_auth_header = r.headers['Authorization']
                     self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
-                    assert new_auth_header != old_auth_header  # Assert header is changed to avoid infinite loops
+                    if new_auth_header == old_auth_header:
+                        raise RuntimeError('refresh_token() was called but token wasn\'t refreshed. Execution stopped to avoid infinite looping.')
                     r.headers.update(new_auth_header)
                     return self._send_request(r)
                 else:
@@ -173,7 +174,7 @@ class Spotify(_BaseClient):
         self._check_for_state(grant, state, set_user_creds)
 
         # Get user creds
-        user_creds_json = self._request_user_creds(grant).json()
+        user_creds_json = self._request_user_creds(grant)
         user_creds_model = self._user_json_to_object(user_creds_json)
 
         # Set user creds
@@ -311,14 +312,6 @@ class Spotify(_BaseClient):
         )
 
     @_dispatch_request
-    def _user_playlists(self, limit=None, offset=None, to_gather=False):
-        return [], dict(
-            limit=limit,
-            offset=offset,
-            to_gather=to_gather
-        )
-
-    @_dispatch_request
     @_inject_user_id
     def follows_playlist(self, playlist_id, user_ids=None, to_gather=False, **kwargs):
         return [playlist_id], dict(
@@ -429,7 +422,7 @@ class Spotify(_BaseClient):
     @_dispatch_request
     @_default_to_locale('market')
     def user_tracks(self, market=None, limit=None, offset=None, to_gather=False):
-        return dict(
+        return [], dict(
             market=market,
             limit=limit,
             offset=offset,
@@ -443,14 +436,6 @@ class Spotify(_BaseClient):
             market=market,
             to_gather=to_gather
         )
-
-    @_dispatch_request
-    def _track(self, track_id, market=None, to_gather=False):
-        if to_gather is True:
-            return [track_id], dict(
-                market=market,
-                to_gather=to_gather
-            )
 
     @_dispatch_request
     def owns_tracks(self, track_ids, to_gather=False):
@@ -475,12 +460,6 @@ class Spotify(_BaseClient):
     @_dispatch_request
     def artists(self, artist_ids, to_gather=False):
         return [artist_ids], dict(
-            to_gather=to_gather
-        )
-
-    @_dispatch_request
-    def _artist(self, artist_id, to_gather=False):
-        return [artist_id], dict(
             to_gather=to_gather
         )
 
@@ -530,13 +509,6 @@ class Spotify(_BaseClient):
     @_default_to_locale('market')
     def albums(self, album_ids, market=None, to_gather=False):
         return [album_ids], dict(
-            market=market,
-            to_gather=to_gather
-        )
-
-    @_dispatch_request
-    def _album(self, album_id, market=None, to_gather=False):
-        return [album_id], dict(
             market=market,
             to_gather=to_gather
         )
