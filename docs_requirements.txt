@@ -1,2 +1,7 @@
+requests
+requests[socks]
+cachecontrol
+aiohttp
+backoff
 sphinx_rtd_theme
 sphinxcontrib-asyncio
