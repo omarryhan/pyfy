@@ -29,7 +29,7 @@
 
 ## Documentation
 
-https://pyfy.readthedocs.io/en/latest
+[Link to Readthedocs](https://pyfy.readthedocs.io/en/latest)
 
 ## Setup
 
