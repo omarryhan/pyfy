@@ -36,13 +36,25 @@ ALL_SCOPES = [
     'user-top-read',  # Listening History
     'user-read-recently-played'
 ]
+''' List of all scopes provided by Spotify '''
 
 
 class _Creds:
     def __init__(self, *args, **kwargs):
         raise TypeError('_Creds class shouldn\'nt initiate attrs')
 
-    def pickle(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    def pickle(self, path=None, name=None):
+        '''
+        Pickles Credentials
+
+        Arguments:
+
+            path (str): path of the directory to store pickle in
+
+            name (str): name of the file.
+        '''
+        if path is None:
+            path = os.path.dirname(os.path.abspath(__file__))
         if name is None:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '_pickle'
         path = os.path.join(path, name)
@@ -50,7 +62,18 @@ class _Creds:
             pickle.dump(self, creds_file, pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def unpickle(cls, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    def unpickle(cls, path=None, name=None):
+        '''
+        Loads a Credentials Pickle from file
+
+        Arguments:
+
+            path (str): path of the directory you want to unpickle from
+
+            name (str): name of the file.
+        '''
+        if path is None:
+            path = os.path.dirname(os.path.abspath(__file__))
         if name is None:
             name = DEFAULT_FILENAME_BASE + cls.__name__ + '_pickle'
         path = os.path.join(path, name)
@@ -65,14 +88,36 @@ class _Creds:
         path = os.path.join(path, name)
         os.remove(path)
 
-    def save_as_json(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    def save_as_json(self, path=None, name=None):
+        '''
+        Saves credentials as a json file
+
+        Arguments:
+
+            path (str): path of the directory you want to save the file in
+
+            name (str): name of the file.
+        '''
+        if path is None:
+            path = os.path.dirname(os.path.abspath(__file__))
         if name is None:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
         path = os.path.join(path, name)
         with open(path, 'w') as outfile:
             json.dump(self.__dict__, outfile)
 
-    def load_from_json(self, path=os.path.dirname(os.path.abspath(__file__)), name=None):
+    def load_from_json(self, path=None, name=None):
+        '''
+        Loads credentials from JSON file
+
+        Arguments:
+
+            path (str): path of the directory the file is located in
+
+            name (str): name of the file.
+        '''
+        if path is None:
+            path = os.path.dirname(os.path.abspath(__file__))
         if name is None:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
         path = os.path.join(path, name)
@@ -87,17 +132,37 @@ class _Creds:
 
     @property
     def access_is_expired(self):
+        '''
+        Returns:
+
+            bool: Whether access token expired or not
+        ''' 
         if isinstance(self.expiry, datetime.datetime):
             return (self.expiry <= datetime.datetime.now())
         return None
 
 
 class ClientCreds(_Creds):
-    def __init__(self, client_id=None, client_secret=None, scopes=ALL_SCOPES, redirect_uri='http://localhost', show_dialog=False):
-        '''
-        Parameters:
-            show_dialog: if set to false, Spotify will not show a new authentication request if user already authorized the client
-        '''
+    '''
+    OAuth2 Client Credentials
+    
+    Arguments:
+
+        client_id (str): OAuth2 client_id
+
+        client_secret (str): OAuth2 client_secret
+
+        scopes (list): OAuth2 scopes. Defaults to all scopes
+
+        redirect_uri (str): OAuth2 redirect uri. Defaults to http://localhost
+
+        show_dialog (bool): if set to false, Spotify will not show a new authentication request if user already authorized the client
+    '''
+    def __init__(self, client_id=None, client_secret=None, scopes=None, redirect_uri=None, show_dialog=False):
+        if redirect_uri is None:
+            redirect_uri = 'http://localhost'
+        if scopes is None:
+            scopes = ALL_SCOPES
         self.client_id = client_id
         self.client_secret = client_secret
         self.scopes = scopes
@@ -108,6 +173,11 @@ class ClientCreds(_Creds):
         self.expiry = None  # For client credentials oauth flow
 
     def load_from_env(self):
+        '''
+        Load client creds from OS environment
+
+        SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET and SPOTiFY_REDIRECT_URI environment variables must be present
+        '''
         self.client_id = os.environ['SPOTIFY_CLIENT_ID']
         self.client_secret = os.environ['SPOTIFY_CLIENT_SECRET']
         self.redirect_uri = os.environ['SPOTIFY_REDIRECT_URI']
@@ -120,15 +190,86 @@ class ClientCreds(_Creds):
 
 
 class UserCreds(_Creds):
-    def __init__(self, access_token=None, refresh_token=None, scopes=[], expiry=None, user_id=None, state=_create_secret()):
+    '''
+    OAuth2 User Credentials + Spotify's User info
+
+    Note:
+
+        For convenience, if you set the populate_user_creds flag to True in any of Pyfy's clients, this will set all of Spotify's basic information on user to this model
+
+    Arguments:
+
+        access_token (str): OAuth2 access token
+
+        refresh_token (str): OAuth2 refresh token
+
+        scopes (list): OAuth2 scopes
+
+        expiry (datetime.datetime): Datetime access token expires
+
+        user_id (str): Not to be confused with OpenID, this is the user's Spotify ID
+
+        state (str): CSRF Token
+
+    Attributes:
+        
+        birthdate (str):  From Spotify's /me endpoint
+        
+        country (str):  From Spotify's /me endpoint
+        
+        display_name (str):  From Spotify's /me endpoint
+        
+        email (str):  From Spotify's /me endpoint
+        
+        external_urls (dict):  From Spotify's /me endpoint
+        
+        followers (dict):  From Spotify's /me endpoint
+        
+        href (str):  From Spotify's /me endpoint
+        
+        id (str):  From Spotify's /me endpoint
+        
+        images (list):  From Spotify's /me endpoint
+        
+        product (str):  From Spotify's /me endpoint
+        
+        type (str):  From Spotify's /me endpoint
+        
+        uri (str): From Spotify's /me endpoint
+    '''
+    def __init__(self, access_token=None, refresh_token=None, scopes=None, expiry=None, user_id=None, state=None):
+        if state is None:
+            state = _create_secret()
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
         self.state = state
         self.country = None
+        self.scopes = scopes or []
+
+        # Spotify's user info
+        self.birthdate = None
+        self.country = None
+        self.display_name = None
+        self.email = None
+        self.external_urls = None
+        self.followers = None
+        self.href = None
+        self.id = None
+        self.images = None
+        self.product = None
+        self.type = None
+        self.uri = None
 
     def load_from_env(self):
+        '''
+        Load user creds from env
+
+        SPOTIFY_ACCESS_TOKEN and SPOTIFY_REFRESH_TOKEN environment variables must be present
+
+        This method will not fail if it didn't find a refresh token, but will fail if no access token was found
+        '''
         self.access_token = os.environ['SPOTIFY_ACCESS_TOKEN']
         self.refresh_token = os.getenv('SPOTIFY_REFRESH_TOKEN', None)
 

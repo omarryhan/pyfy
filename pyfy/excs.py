@@ -5,7 +5,9 @@ logger = logging.getLogger(__name__)
 
 
 class SpotifyError(Exception):
-    ''' Base error class for ApiError and AuthError '''
+    '''
+    Base error class for ApiError and AuthError
+    '''
     def _build_super_msg(self, msg, http_res, http_req, e):
         if not http_req and not http_res and not e:
             return msg
@@ -44,8 +46,17 @@ class SpotifyError(Exception):
 
 
 class ApiError(SpotifyError):
-    ''' Raised when almost any error other than 401 is encountered
-     https://developer.spotify.com/documentation/web-api/#response-schema // regular error object '''
+    ''' 
+    Almost any HTTP error other that 401 raises this error
+    https://developer.spotify.com/documentation/web-api/#response-schema // regular error object 
+    
+    Attributes:
+
+        msg (str): Error msg returned from Spotify
+        http_response: Full HTTP response
+        http_request: Full HTTP request that caused this error
+        code (int): HTTP status code
+    '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response
@@ -58,7 +69,15 @@ class ApiError(SpotifyError):
 
 class AuthError(SpotifyError):
     ''' Raised when a 401 or any Authentication error is encountered
-    https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object '''
+    https://developer.spotify.com/documentation/web-api/#response-schema // authentication error object 
+    
+    Attributes:
+
+        msg (str): Error msg returned from Spotify
+        http_response: Full HTTP response
+        http_request: Full HTTP request that caused this error
+        code (int): HTTP status code
+    '''
     def __init__(self, msg, http_response=None, http_request=None, e=None):
         self.msg = msg
         self.http_response = http_response

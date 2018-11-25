@@ -43,16 +43,26 @@ class _BaseClient:
     def __init__(self, access_token, client_creds, user_creds, ensure_user_auth, proxies, timeout,
                 max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds):
         '''
-        Parameters:
+        Arguments:
+
             client_creds: A client credentials model
+
             user_creds: A user credentials model
+            
             ensure_user_auth: Whether or not to fail if user_creds provided where invalid and not refresheable
+            
             proxies: socks or http proxies # http://docs.python-requests.org/en/master/user/advanced/#proxies & http://docs.python-requests.org/en/master/user/advanced/#socks
+            
             timeout: Seconds before request raises a timeout error
+            
             max_retries: Max retries before a request fails
+            
             enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
+            
             backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
+            
             default_to_locale: Will pass methods decorated with @_default_to_locale the user's locale if available.
+            
             cache: Whether or not to cache HTTP requests for the user
         '''
 
@@ -160,6 +170,13 @@ class _BaseClient:
 
     @property
     def is_oauth_ready(self):
+        '''
+        Whether Client Credentials have enough information to perform OAuth2 Authorization Code FLow
+        
+        Returns
+
+            bool:
+        '''
         return self.client_creds.is_oauth_ready
 
     @property
@@ -167,6 +184,10 @@ class _BaseClient:
     def oauth_uri(self):
         '''
         Generate OAuth2 URI for authentication
+
+        Returns:
+
+            str: OAuth2 Authorizatoin URI
         '''
         params = {
             'client_id': self.client_creds.client_id,
@@ -254,7 +275,7 @@ class _BaseClient:
                 json=json if json else None
             )
 
-    def _prep__check_authorization(self):  # double dundered for consistency
+    def _prep__check_authorization(self):
         test_url = BASE_URI + '/search?' + urlencode(dict(q='Hey spotify am I authorized', type='artist'))
         return self._create_request(method='GET', url=test_url)
 
@@ -266,13 +287,11 @@ class _BaseClient:
 ##### Playback
 
     def _prep_devices(self, **kwargs):
-        ''' Lists user's devices '''
         url = BASE_URI + '/me/player/devices'
         params = dict()
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
     def _prep_play(self, resource_id=None, resource_type='track', device_id=None, offset_position=None, position_ms=None, **kwargs):
-        ''' Available types: 'track', 'artist', 'playlist', 'podcast', 'user' not sure if there's more'''
         url = BASE_URI + '/me/player/play'
         if resource_id and resource_type:
             context_uri = 'spotify:' + resource_type + ':' + resource_id
@@ -288,16 +307,16 @@ class _BaseClient:
         else:
             params = dict(device_id=device_id)
             data = {}
-        '''
-            JSON e.g.
-            {
-                'context_uri': context_uri, # or uris: [context_uris]
-                'offset': {
-                    'position': offset_position
-                },
-                'position_ms': position_ms
-            }
-        '''
+        
+        #    JSON e.g.
+        #    {
+        #        'context_uri': context_uri, # or uris: [context_uris]
+        #        'offset': {
+        #            'position': offset_position
+        #        },
+        #        'position_ms': position_ms
+        #    }
+        
         return self._create_request(method='PUT', url=_build_full_url(url, params), json=data)
     
     def _prep_pause(self, device_id=None, **kwargs):
@@ -419,7 +438,6 @@ class _BaseClient:
         return self._create_request(method='GET', url=_build_full_url(url, params))
 
     def _prep_add_playlist_tracks(self, playlist_id, track_ids, position=None, **kwargs):
-        ''' track_ids can be a list of track ids or a string of one track_id'''
         url = BASE_URI + '/playlists/' + playlist_id + '/tracks'
 
         # convert IDs to uris. WHY SPOTIFY :(( ?

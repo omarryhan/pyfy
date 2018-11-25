@@ -20,8 +20,8 @@ def run():
                 '--cov',
                 'pyfy/',
                 'tests/test_units/',
-                'tests/test_integration/test_sync/',
                 'tests/test_integration/test_async/',
+                'tests/test_integration/test_sync/',
             ]
         )
     elif client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async !='true':  # Run unit tests then integration tests
