@@ -3,5 +3,3 @@ pytest-cov
 pytest-mock
 pytest-asyncio
 tox
-sphinx_rtd_theme
-sphinxcontrib-asyncio
