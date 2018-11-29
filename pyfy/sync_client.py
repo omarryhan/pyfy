@@ -109,6 +109,10 @@ class Spotify(_BaseClient):
             self.populate_user_creds()
 
     def populate_user_creds(self):
+        ''' 
+        Populates self.user_creds with Spotify's info on user.
+        Data is fetched from self.me() and set to user recursively
+        '''
         me = self.me()
         if me:
             self._populate_user_creds(me)

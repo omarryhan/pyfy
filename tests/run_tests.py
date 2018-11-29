@@ -1,4 +1,4 @@
-import os
+import os, sys
 import pytest
 
 def run():
@@ -11,7 +11,7 @@ def run():
 
     if client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async =='true':  # Run unit tests then integration tests
         print('Running unit tests followed by integration tests')
-        pytest.main(
+        exit_code = pytest.main(
             [
                 '-v',
                 '-s',
@@ -26,13 +26,15 @@ def run():
         )
     elif client_id and client_secret and access_token and redirect_uri and test_integration_sync == 'true' and test_integration_async !='true':  # Run unit tests then integration tests
         print('Running unit tests followed by synchronous integration tests')
-        pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_sync/'])
+        exit_code = pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_sync/'])
     elif client_id and client_secret and access_token and redirect_uri and test_integration_sync != 'true' and test_integration_async =='true':  # Run unit tests then integration tests
         print('Running unit tests followed by asynchronous integration tests')
-        pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_async/'])
+        exit_code = pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/', 'tests/test_integration/test_async/'])
     else:
         print('Running unit tests')
-        pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/'])
+        exit_code = pytest.main(['-v', '-s', '--cov', 'pyfy/', 'tests/test_units/'])
+
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':
