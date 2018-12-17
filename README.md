@@ -1,8 +1,8 @@
 <p align="center">
   <img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Spotify_meaningful_logo.svg" alt="Logo" title="Spotify" height="300" width="300"/>
   <p align="center">
-    <a href="https://travis-ci.org/omarryhan/Pyfy"><img alt="Build Status" src="https://travis-ci.org/omarryhan/Pyfy.svg?branch=master"></a>
-    <a href="https://github.com/omarryhan/Pyfy"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="https://travis-ci.org/omarryhan/pyfy"><img alt="Build Status" src="https://travis-ci.org/omarryhan/pyfy.svg?branch=master"></a>
+    <a href="https://github.com/omarryhan/pyfy"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
   </p>
 </p>
 
