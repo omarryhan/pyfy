@@ -149,7 +149,7 @@
         except ApiError:
             abort(500)
 
-### 👨 Ways to load Credentials (User & Client)
+### Ways to load Credentials (User & Client)
 
     # Instantiate directly
     client = ClientCreds(client_id='aclientid', client_secret='averysecrettoken')
@@ -162,7 +162,7 @@
     client = ClientCreds()
     client.load_from_json(path='full/dir/path', name='name_of_the_json_file')
 
-## 🎶 Resources
+## Resources
 
 - Playback:
   - devices()
