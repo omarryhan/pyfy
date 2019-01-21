@@ -1,4 +1,5 @@
 import os
+import warnings
 try:
     import ujson as json
 except:
@@ -138,9 +139,20 @@ class _Creds:
             bool: Whether access token expired or not
         ''' 
         if isinstance(self.expiry, datetime.datetime):
-            return (self.expiry <= datetime.datetime.now())
+            return (self.expiry <= datetime.datetime.utcnow())
         return None
 
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError as e:
+            raise KeyError(e)
+
+    def get(self, key):
+        return getattr(self, key, None)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
 class ClientCreds(_Creds):
     '''
@@ -209,8 +221,6 @@ class UserCreds(_Creds):
 
         user_id (str): Not to be confused with OpenID, this is the user's Spotify ID
 
-        state (str): CSRF Token
-
     Attributes:
         
         birthdate (str):  From Spotify's /me endpoint
@@ -238,12 +248,12 @@ class UserCreds(_Creds):
         uri (str): From Spotify's /me endpoint
     '''
     def __init__(self, access_token=None, refresh_token=None, scopes=None, expiry=None, user_id=None, state=None):
-        if state is None:
-            state = _create_secret()
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
+        if state is not None:
+            warnings.warn('user_creds.state is deprecated and will soon be removed', DeprecationWarning)
         self.state = state
         self.country = None
         self.scopes = scopes or []

@@ -7,8 +7,8 @@ from pyfy import AuthError
 
 def test_valid_oauth_uri(async_spotify_client_auth):
     # Assumes valid spotify id and "valid" spotify secret
-    assert async_spotify_client_auth.oauth_uri
-    assert requests.get(async_spotify_client_auth.oauth_uri).status_code == 200
+    assert async_spotify_client_auth.auth_uri()
+    assert requests.get(async_spotify_client_auth.auth_uri()).status_code == 200
 
 @pytest.mark.asyncio
 async def test_bad_client_creds_raise_auth_error(async_spotify_client_auth):

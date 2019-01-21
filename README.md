@@ -129,7 +129,7 @@
     def authorize():
         # Fist step of OAuth, Redirect user to spotify's authorization endpoint
         if spt.is_oauth_ready:
-            return redirect(spt.oauth_uri)
+            return redirect(spt.auth_uri())
 
     # Authorization callback
     def callback(grant):

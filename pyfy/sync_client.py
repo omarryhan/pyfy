@@ -2,6 +2,7 @@ import logging
 import datetime
 from urllib import parse
 from urllib3.util import Retry
+import warnings
 
 from requests import Request, Session, Response
 from requests.exceptions import HTTPError, Timeout
@@ -66,14 +67,6 @@ class Spotify(_BaseClient):
 
             * Default: 10
         
-        enforce_state_check (bool):
-        
-            * Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks
-            
-            * Optional
-
-            * Default: True
-        
         backoff_factor (float):
         
             * Factor by which requests delays the next request when encountring a 429 too-many-requests error
@@ -102,7 +95,7 @@ class Spotify(_BaseClient):
     IS_ASYNC= False
 
     def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
-                max_retries=10, enforce_state_check=True, backoff_factor=0.1, default_to_locale=True, cache=True, populate_user_creds=True):
+                max_retries=10, enforce_state_check=None, backoff_factor=0.1, default_to_locale=True, cache=True, populate_user_creds=True):
         super().__init__(access_token, client_creds, user_creds, ensure_user_auth, proxies,
             timeout, max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds)
         if populate_user_creds and self.user_creds:
@@ -240,19 +233,22 @@ class Spotify(_BaseClient):
 
             grant (str): Code returned to user after authorizing your application
             
-            state (str): State returned from oauth callback
-            
-            enforce_state_check (bool): Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
-            
             set_user_creds (bool): Whether or not to set the user created to the client as the current active user
 
         Returns:
 
             pyfy.creds.UserCreds: User Credentials Model
         '''
-        if enforce_state_check is not None:
-            self.enforce_state_check = enforce_state_check
-        self._check_for_state(grant, state, set_user_creds)
+        if state is not None or enforce_state_check is not None:
+            warning_msg = '''
+            state and enforce_state_check are deprecated and will be removed soon. 
+            Please remove those arguments and manually validate them instead
+            '''
+            warnings.warn(warning_msg, DeprecationWarning)
+            check = enforce_state_check or self.enforce_state_check
+            if check is True:
+                if state != self.user_creds.state:
+                    raise AuthError('Invalid state')
 
         # Get user creds
         user_creds_json = self._request_user_creds(grant)

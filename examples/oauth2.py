@@ -13,6 +13,7 @@ app = Flask(__name__)
 
 spt = Spotify()
 client = ClientCreds()
+state = '123'
 
 @app.route('/authorize')
 def authorize():
@@ -20,7 +21,7 @@ def authorize():
     client.load_from_env()
     spt.client_creds = client
     if spt.is_oauth_ready:
-        return redirect(spt.oauth_uri)
+        return redirect(spt.auth_uri(state=state))
     else:
         return jsonify({'error_description': 'Client needs client_id, client_secret and a redirect uri in order to handle OAauth properly'}), 500
 
@@ -31,9 +32,11 @@ def spotify_callback():
         return jsonify(dict(error=request.args.get('error_description')))
     elif request.args.get('code'):
         grant = request.args.get('code')
-        state = request.args.get('state')
+        callback_state = request.args.get('state')
+        if callback_state != state:
+            return abort(401)
         try:
-            user_creds = spt.build_user_creds(grant=grant, state=state)
+            user_creds = spt.build_user_creds(grant=grant)
         except AuthError as e:
             return jsonify(dict(error_description=e.msg)), e.code
         else:

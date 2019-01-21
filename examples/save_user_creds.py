@@ -3,6 +3,7 @@ import webbrowser
 
 from sanic import Sanic, response
 from sanic.response import json, text
+from sanic.exceptions import abort
 
 from pyfy import AsyncSpotify, ClientCreds, UserCreds, AuthError
 try:
@@ -19,6 +20,7 @@ local_full_address = local_address + ':' + str(local_port)
 
 spt = AsyncSpotify()
 client = ClientCreds()
+state = '123'
 
 @app.route('/authorize')
 def authorize(request):
@@ -26,7 +28,7 @@ def authorize(request):
     client.load_from_env()
     spt.client_creds = client
     if spt.is_oauth_ready:
-        return response.redirect(spt.oauth_uri)
+        return response.redirect(spt.auth_uri(state=state))
     else:
         return json({'error_description': 'Client needs client_id, client_secret and a redirect uri in order to handle OAauth properly'}), 500
 
@@ -37,11 +39,11 @@ async def spotify_callback(request):
         return json(dict(error=request.args.get('error_description')))
     elif request.args.get('code'):
         grant = request.args.get('code')
-        state = request.args.get('state')
+        callback_state = request.args.get('state')
+        if callback_state != state:
+            abort(401)
         try:
-            print(state)
-            print(spt.user_creds.state)
-            user_creds = await spt.build_user_creds(grant=grant, state=state, enforce_state_check=True)
+            user_creds = await spt.build_user_creds(grant=grant)
         except AuthError as e:
             return json(dict(error_description=e.msg, error_code=e.code), e.code)
         else:

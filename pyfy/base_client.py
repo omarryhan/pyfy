@@ -57,8 +57,6 @@ class _BaseClient:
             
             max_retries: Max retries before a request fails
             
-            enforce_state_check: Check for a CSRF-token-like string. Helps verifying the identity of a callback sender thus avoiding CSRF attacks. Optional
-            
             backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
             
             default_to_locale: Will pass methods decorated with @_default_to_locale the user's locale if available.
@@ -82,6 +80,12 @@ class _BaseClient:
             self._session = sess
 
         # Api defaults
+        if enforce_state_check is not None:
+            warning_msg = '''
+            The use of enforce_state_check when constructing a Pyfy client is deprecated. 
+            The argument will be removed soon. You should manually validate a user's "state"
+            '''
+            warnings.warn(warning_msg, DeprecationWarning)
         self.enforce_state_check = enforce_state_check
         self.ensure_user_auth = ensure_user_auth
         self.default_to_locale = default_to_locale
@@ -129,14 +133,6 @@ class _BaseClient:
         headers = {**self._client_authorization_header, **self._form_url_encoded_type_header}
         return self._create_request(method='POST', url=OAUTH_TOKEN_URL, headers=headers, data=data)
 
-    def _check_for_state(self, grant, state, set_user_creds):
-        # Check for equality of states
-        if state is not None:
-            if state != getattr(self.user_creds, 'state', None):
-                res = Response()
-                res.status_code = 401
-                raise AuthError(msg='States do not match or state not provided', http_response=res)
-
     def _prep__request_user_creds(self, grant):
         data = {
             'grant_type': 'authorization_code',
@@ -183,12 +179,13 @@ class _BaseClient:
     @_set_empty_user_creds_if_none
     def oauth_uri(self):
         '''
-        Generate OAuth2 URI for authentication
+        Generate OAuth2 URI for authentication (Deprecated)
 
         Returns:
 
             str: OAuth2 Authorizatoin URI
         '''
+        warnings.warn('oauth_uri property is deprecated in favor of auth_uri() method and will be removed soon', DeprecationWarning)
         params = {
             'client_id': self.client_creds.client_id,
             'response_type': 'code',
@@ -198,11 +195,49 @@ class _BaseClient:
         params = urlencode(params)
         redirect_uri = self.client_creds.redirect_uri
         uri = f'{OAUTH_AUTHORIZE_URL}?redirect_uri={redirect_uri}&{params}'
-        if self.enforce_state_check:
-            if self.user_creds.state is None:
-                warnings.warn('No user state provided. Returning URL without a state!')
-            else:
-                uri = uri + f'&state={self.user_creds.state}'
+        if self.user_creds.state is not None:
+            uri = uri + f'&state={self.user_creds.state}'
+        return uri
+
+    def auth_uri(self, state=None, client_id=None, scopes=None, redirect_uri=None, show_dialog=None, response_type=None):
+        '''
+        Generates OAuth2 URI for authentication
+        Arguments will default to the attributes of self.client_creds
+
+        Arguments:
+
+            client_id (str): OAuth2 client_id
+
+            scopes (list): OAuth2 scopes. Defaults to all scopes
+
+            redirect_uri (str): OAuth2 redirect uri. Defaults to http://localhost
+
+            show_dialog (bool): if set to false, Spotify will not show a new authentication request if user already authorized the client (Default: False)
+
+            response_type (str): Defaults to "code" for OAuth2 Authorization Code Flow
+
+        Returns:
+
+            str: OAuth2 Auth URI
+
+        '''
+        client_id = client_id or self.client_creds.client_id
+        scopes_list = scopes or self.client_creds.scopes
+        redirect_uri = redirect_uri or self.client_creds.redirect_uri
+        state = state or getattr(self.user_creds, 'state', None)
+        show_dialog = show_dialog or self.client_creds.show_dialog or False
+        response_type = response_type or 'code'
+
+        params = {
+            'client_id': client_id,
+            'response_type': response_type,
+            'scope': ' '.join(scopes_list),
+            'show_dialog': json.dumps(show_dialog)
+        }
+        params = urlencode(params)
+        uri = f'{OAUTH_AUTHORIZE_URL}?redirect_uri={redirect_uri}&{params}'
+        if state is not None:
+            uri += f'&state={state}'
         return uri
 
     def _update_user_creds_with(self, user_creds_object):
@@ -221,7 +256,7 @@ class _BaseClient:
         return UserCreds(
             access_token=json_response['access_token'],
             scopes=json_response['scope'].split(' '),
-            expiry=datetime.datetime.now() + datetime.timedelta(seconds=json_response['expires_in']),
+            expiry=datetime.datetime.utcnow() + datetime.timedelta(seconds=json_response['expires_in']),
             refresh_token=json_response.get('refresh_token', None)
         )
 
@@ -229,7 +264,7 @@ class _BaseClient:
     def _client_json_to_object(json_response):
         creds = ClientCreds()
         creds.access_token = json_response['access_token']
-        creds.expiry = datetime.datetime.now() + datetime.timedelta(seconds=json_response['expires_in'])
+        creds.expiry = datetime.datetime.utcnow() + datetime.timedelta(seconds=json_response['expires_in'])
         return creds
 
     @property

@@ -6,8 +6,8 @@ from pyfy import ALL_SCOPES, AuthError, ClientCreds
 
 
 def test_all_scopes_are_valid(spotify_client_auth):
-    assert spotify_client_auth.oauth_uri
-    assert requests.get(spotify_client_auth.oauth_uri).status_code == 200
+    assert spotify_client_auth.auth_uri()
+    assert requests.get(spotify_client_auth.auth_uri()).status_code == 200
 
 
 def test_client_credentials_oauth(spotify_client_auth):

@@ -10,12 +10,6 @@ def test_creds_loaded_from_env(user_creds_from_env, client_creds_from_env):
     assert user_creds_from_env.access_token
     assert client_creds_from_env.client_id
 
-
-def test_state_automatically_generated_if_none(user_creds_from_env):
-    assert user_creds_from_env.state
-    assert isinstance(user_creds_from_env.state, str)
-
-
 def test_client_is_oauth_ready(client_creds_from_env):
     ''' for successfull oauth authorization request, spotify requires: client-id, redirect-uri and scopes '''
     assert client_creds_from_env.is_oauth_ready  # Should be ready out of the box
@@ -68,7 +62,7 @@ def test_creds_is_not_instantiable():
 
 
 def access_is_expired(user_creds_from_env):
-    user_creds_from_env.expiry = datetime.datetime.now()
+    user_creds_from_env.expiry = datetime.datetime.utcnow()
     assert user_creds_from_env.access_is_expired is True
-    user_creds_from_env.expiry = datetime.datetime.now() + datetime.timedelta(minutes=2)
+    user_creds_from_env.expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=2)
     assert user_creds_from_env.access_is_expired is False
