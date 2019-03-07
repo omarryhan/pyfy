@@ -206,13 +206,13 @@ class _BaseClient:
 
         Arguments:
 
-            client_id (str): OAuth2 client_id
+            client_id (str): OAuth2 client_id (Defaults to self.client_creds.client_id)
 
-            scopes (list): OAuth2 scopes. Defaults to all scopes
+            scopes (list): OAuth2 scopes. (Defaults to self.client_creds.scopes)
 
-            redirect_uri (str): OAuth2 redirect uri. Defaults to http://localhost
+            redirect_uri (str): OAuth2 redirect uri. (Defaults to self.client_creds.redirect_uri)
 
-            show_dialog (bool): if set to false, Spotify will not show a new authentication request if user already authorized the client (Default: False)
+            show_dialog (bool): if set to false, Spotify will not show a new authentication request if user already authorized the client (Defaults to self.client_creds.show_dialog)
 
             response_type (str): Defaults to "code" for OAuth2 Authorization Code Flow
 

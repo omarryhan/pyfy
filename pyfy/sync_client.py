@@ -268,7 +268,7 @@ class Spotify(_BaseClient):
 
             bool:
         '''
-        if _set_and_get_me_attr_sync(self, 'type') == 'premium':
+        if _set_and_get_me_attr_sync(self, 'product') == 'premium':
             return True
         return False
 

@@ -373,7 +373,7 @@ class AsyncSpotify(_BaseClient):
                     raise AuthError('Invalid state')
             
         # Get user creds
-        user_creds_json = (await self._request_user_creds(grant))
+        user_creds_json = await self._request_user_creds(grant)
         user_creds_model = self._user_json_to_object(user_creds_json)
 
         # Set user creds
@@ -386,17 +386,11 @@ class AsyncSpotify(_BaseClient):
         '''
         Checks whether user is premium or not
 
-        Arguments:
-
-            asdasd (str): sdasda
-
-            asdasd (int): asd
-
         Returns:
 
             bool:
         '''
-        if await _set_and_get_me_attr_async(self, 'type') == 'premium':
+        if await _set_and_get_me_attr_async(self, 'product') == 'premium':
             return True
         return False
 
