@@ -48,34 +48,7 @@ Setup 🥁
 
 .. code-block:: bash
 
-    $ pip install --upgrade --user pyfy
-
-**Python3.7:**
-
-.. code-block:: bash
-
-    $ python3.7 -m pip install --upgrade --user pyfy
-
-**Optional for Async:**
-
-- Faster encoding detector lib written in C:
-
-.. code-block:: bash
-
-    $ pip install --user cchardet  
-
-- Async DNS requests:
-
-.. code-block:: bash
-
-    $ pip install --user aiodns
-
-- Faster JSON parser written in C:
-
-.. code-block:: bash
-
-    $ pip install --user ujson
-
+    $ pip install pyfy
 
 Quick Start 🎛️
 ===============

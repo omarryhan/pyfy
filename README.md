@@ -33,7 +33,7 @@
 
 ## Setup
 
-    $ pip install --upgrade --user pyfy
+    $ pip install pyfy
 
 
 ## Quick Start
@@ -236,7 +236,7 @@
 
 ## Contribute
 
-- All kinds of contributions are welcome :)
+- All kinds of contribution are welcome :)
 
 ## Contributors
 
