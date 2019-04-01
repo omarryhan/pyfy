@@ -251,7 +251,7 @@ class AsyncSpotify(_BaseClient):
         try:
             res.raise_for_status()
         except TimeoutError as e:
-            print('\nRequest timed out, try increasing the timeout period\n')
+            logger.error('\nRequest timed out, try increasing the timeout period\n')
             raise e
         except ClientResponseError as e:
             if res.status_code == 401:  # Automatically refresh and resend request
