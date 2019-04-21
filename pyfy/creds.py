@@ -1,4 +1,5 @@
 import os
+import sys
 import warnings
 try:
     import ujson as json
@@ -105,7 +106,10 @@ class _Creds:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + '.json'
         path = os.path.join(path, name)
         with open(path, 'w') as outfile:
-            json.dump(self.__dict__, outfile)
+            if 'ujson' in sys.modules:
+                json.dump(self.__dict__, outfile)
+            else:
+                json.dump(self.__dict__, outfile, default=str)
 
     def load_from_json(self, path=None, name=None):
         '''
