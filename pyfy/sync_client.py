@@ -9,32 +9,23 @@ from requests.exceptions import HTTPError, Timeout
 from requests.adapters import HTTPAdapter
 from cachecontrol import CacheControlAdapter
 
-from .creds import (
-    ClientCreds,
-    _set_empty_user_creds_if_none
-)
+from .creds import ClientCreds, _set_empty_user_creds_if_none
 from .excs import ApiError, AuthError
-from .utils import (
-    _safe_getitem,
-)
+from .utils import _safe_getitem
 from .wrappers import (
     _dispatch_request,
     _set_and_get_me_attr_sync,
     _default_to_locale,
-    _inject_user_id
+    _inject_user_id,
 )
-from .base_client import (
-    _BaseClient,
-    TOKEN_EXPIRED_MSG,
-    BASE_URI,
-)
+from .base_client import _BaseClient, TOKEN_EXPIRED_MSG, BASE_URI
 
 
 logger = logging.getLogger(__name__)
 
 
 class Spotify(_BaseClient):
-    '''
+    """
     Spotify's Synchronous Client
     
     Arguments:
@@ -90,22 +81,47 @@ class Spotify(_BaseClient):
             * Sets user_creds info from Spotify to client's user_creds object. e.g. country.
 
             * Default: True
-    '''
+    """
 
-    IS_ASYNC= False
+    IS_ASYNC = False
 
-    def __init__(self, access_token=None, client_creds=ClientCreds(), user_creds=None, ensure_user_auth=False, proxies={}, timeout=7,
-                max_retries=10, enforce_state_check=None, backoff_factor=0.1, default_to_locale=True, cache=True, populate_user_creds=True):
-        super().__init__(access_token, client_creds, user_creds, ensure_user_auth, proxies,
-            timeout, max_retries, enforce_state_check, backoff_factor, default_to_locale, cache, populate_user_creds)
+    def __init__(
+        self,
+        access_token=None,
+        client_creds=ClientCreds(),
+        user_creds=None,
+        ensure_user_auth=False,
+        proxies={},
+        timeout=7,
+        max_retries=10,
+        enforce_state_check=None,
+        backoff_factor=0.1,
+        default_to_locale=True,
+        cache=True,
+        populate_user_creds=True,
+    ):
+        super().__init__(
+            access_token,
+            client_creds,
+            user_creds,
+            ensure_user_auth,
+            proxies,
+            timeout,
+            max_retries,
+            enforce_state_check,
+            backoff_factor,
+            default_to_locale,
+            cache,
+            populate_user_creds,
+        )
         if populate_user_creds and self.user_creds:
             self.populate_user_creds()
 
     def populate_user_creds(self):
-        ''' 
+        """ 
         Populates self.user_creds with Spotify's info on user.
         Data is fetched from self.me() and set to user recursively
-        '''
+        """
         me = self.me()
         if me:
             self._populate_user_creds(me)
@@ -113,24 +129,31 @@ class Spotify(_BaseClient):
     def _create_session(self, max_retries, proxies, backoff_factor, cache):
         sess = Session()
         # Retry only on idempotent methods and only when too many requests
-        retries = Retry(total=max_retries, backoff_factor=backoff_factor, status_forcelist=[429], method_whitelist=['GET', 'UPDATE', 'DELETE'])
+        retries = Retry(
+            total=max_retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=[429],
+            method_whitelist=["GET", "UPDATE", "DELETE"],
+        )
         retries_adapter = HTTPAdapter(max_retries=retries)
         if cache:
             cache_adapter = CacheControlAdapter(cache_etags=True)
-        sess.mount('http://', retries_adapter)
-        sess.mount('http://', cache_adapter)
-        sess.proxies.update(proxies)  
+        sess.mount("http://", retries_adapter)
+        sess.mount("http://", cache_adapter)
+        sess.proxies.update(proxies)
         return sess
 
     @_dispatch_request
     def _check_authorization(self):
-        '''
+        """
         Checks whether the credentials provided are valid or not by making and api call that requires no scope but still requires authorization
-        '''
+        """
         return list(), dict()
 
     def _send_authorized_request(self, r):
-        if getattr(self._caller, 'access_is_expired', None) is True:  # True if expired and None if there's no expiry set
+        if (
+            getattr(self._caller, "access_is_expired", None) is True
+        ):  # True if expired and None if there's no expiry set
             self._refresh_token()
         r.headers.update(self._access_authorization_header)
         return self._send_request(r)
@@ -142,30 +165,40 @@ class Spotify(_BaseClient):
             res = self._session.send(prepped, timeout=self.timeout)
             res.raise_for_status()
         except Timeout as e:
-            raise ApiError('Request timed out.\nTry increasing the client\'s timeout period', http_response=Response(), http_request=r, e=e)
+            raise ApiError(
+                "Request timed out.\nTry increasing the client's timeout period",
+                http_response=Response(),
+                http_request=r,
+                e=e,
+            )
         except HTTPError as e:
             if res.status_code == 401:
-                if res.json().get('error', None).get('message', None) == TOKEN_EXPIRED_MSG:
-                    old_auth_header = r.headers['Authorization']
+                if (
+                    res.json().get("error", None).get("message", None)
+                    == TOKEN_EXPIRED_MSG
+                ):
+                    old_auth_header = r.headers["Authorization"]
                     self._refresh_token()  # Should either raise an error or refresh the token
                     new_auth_header = self._access_authorization_header
                     if new_auth_header == old_auth_header:
-                        msg = 'refresh_token() was successfully called but token wasn\'t refreshed. Execution stopped to avoid infinite looping.'
+                        msg = "refresh_token() was successfully called but token wasn't refreshed. Execution stopped to avoid infinite looping."
                         logger.critical(msg)
                         raise RuntimeError(msg)
                     r.headers.update(new_auth_header)
                     return self._send_request(r)
                 else:
-                    msg = res.json().get('error_description') or res.json()
+                    msg = res.json().get("error_description") or res.json()
                     raise AuthError(msg=msg, http_response=res, http_request=r, e=e)
             else:
-                msg = _safe_getitem(res.json(), 'error', 'message') or _safe_getitem(res.json(), 'error_description')
+                msg = _safe_getitem(res.json(), "error", "message") or _safe_getitem(
+                    res.json(), "error_description"
+                )
                 raise ApiError(msg=msg, http_response=res, http_request=r, e=e)
         else:
             return res
 
     def authorize_client_creds(self, client_creds=None):
-        ''' 
+        """ 
         Authorize with client credentials oauth flow i.e. Only with client secret and client id.
 
         Call this to send request using client credentials.
@@ -183,12 +216,17 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.AuthErrror: 
-        '''
+        """
         r = self._prep_authorize_client_creds(client_creds)
         try:
             res = self._send_request(r)
         except ApiError as e:
-            raise AuthError(msg='Failed to authenticate with client credentials', http_response=e.http_response, http_request=r, e=e)
+            raise AuthError(
+                msg="Failed to authenticate with client credentials",
+                http_response=e.http_response,
+                http_request=r,
+                e=e,
+            )
         else:
             new_creds_json = res.json()
             new_creds_model = self._client_json_to_object(new_creds_json)
@@ -198,9 +236,9 @@ class Spotify(_BaseClient):
 
     @property
     def is_active(self):
-        '''
+        """
         Checks if user_creds or client_creds are valid (depending on who was last set)
-        '''
+        """
         if self._caller is None:
             return False
         try:
@@ -216,7 +254,7 @@ class Spotify(_BaseClient):
         elif self._caller is self.client_creds:
             return self.authorize_client_creds()
         else:
-            raise AuthError('No caller to refresh token for')
+            raise AuthError("No caller to refresh token for")
 
     def _refresh_user_token(self):
         r = self._prep_refresh_user_token()
@@ -225,8 +263,10 @@ class Spotify(_BaseClient):
         self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    def build_user_creds(self, grant, state=None, enforce_state_check=None, set_user_creds=True):
-        '''
+    def build_user_creds(
+        self, grant, state=None, enforce_state_check=None, set_user_creds=True
+    ):
+        """
         Second part of OAuth2 authorization code flow, Raises an AuthError if unauthorized
 
         Arguments:
@@ -238,17 +278,17 @@ class Spotify(_BaseClient):
         Returns:
 
             pyfy.creds.UserCreds: User Credentials Model
-        '''
+        """
         if state is not None or enforce_state_check is not None:
-            warning_msg = '''
+            warning_msg = """
             state and enforce_state_check are deprecated and will be removed soon. 
             Please remove those arguments and manually validate them instead
-            '''
+            """
             warnings.warn(warning_msg, DeprecationWarning)
             check = enforce_state_check or self.enforce_state_check
             if check is True:
                 if state != self.user_creds.state:
-                    raise AuthError('Invalid state')
+                    raise AuthError("Invalid state")
 
         # Get user creds
         user_creds_json = self._request_user_creds(grant)
@@ -261,14 +301,14 @@ class Spotify(_BaseClient):
 
     @property
     def is_premium(self, **kwargs):
-        '''
+        """
         Checks whether user is premium or not
 
         Returns:
 
             bool:
-        '''
-        if _set_and_get_me_attr_sync(self, 'product') == 'premium':
+        """
+        if _set_and_get_me_attr_sync(self, "product") == "premium":
             return True
         return False
 
@@ -278,10 +318,10 @@ class Spotify(_BaseClient):
 
     ####################################################################### RESOURCES ############################################################################
 
-##### Playback
+    ##### Playback
     @_dispatch_request
     def devices(self, *args, **kwargs):
-        '''
+        """
         Lists user's devices
 
         Returns:
@@ -291,12 +331,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def play(self, *args, **kwargs):
-        '''
+        """
         Starts playback
 
         Note:
@@ -348,12 +388,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def pause(self, *args, **kwargs):
-        '''
+        """
         Pauses playback
 
         Arguments:
@@ -369,13 +409,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def currently_playing(self, *args, **kwargs):
-        '''
+        """
         Lists currenly playing
 
         Arguments:
@@ -391,13 +431,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def currently_playing_info(self, *args, **kwargs):
-        '''
+        """
         Lists currently playing info
 
         Arguments:
@@ -413,12 +453,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def recently_played_tracks(self, *args, **kwargs):
-        '''
+        """
         Lists recently played tracks
 
         Arguments:
@@ -442,12 +482,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def next(self, *args, **kwargs):
-        '''
+        """
         Next playback
 
         Arguments:
@@ -463,12 +503,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def previous(self, *args, **kwargs):
-        '''
+        """
         Previous Playback
 
         Arguments:
@@ -484,13 +524,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def repeat(self, *args, **kwargs):
-        '''
+        """
         Toggle repeat
 
         Arguments:
@@ -512,12 +551,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def seek(self, *args, **kwargs):
-        '''
+        """
         Seek Playback
 
         Arguments:
@@ -537,12 +576,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def shuffle(self, *args, **kwargs):
-        '''
+        """
         Shuffle Playback
 
         Arguments:
@@ -564,12 +603,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def playback_transfer(self, *args, **kwargs):
-        '''
+        """
         Transfer playback to another device
 
         Arguments:
@@ -585,12 +624,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def volume(self, *args, **kwargs):
-        '''
+        """
         Change volume
 
         Arguments:
@@ -610,15 +649,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-##### Playlists
+    ##### Playlists
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def playlist(self, *args, **kwargs):
-        '''
+        """
         Lists playlist
 
         Arguments:
@@ -642,12 +681,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def user_playlists(self, *args, **kwargs):
-        '''
+        """
         Lists playlists owned by a user
 
         Arguments:
@@ -673,13 +712,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     @_inject_user_id
     def follows_playlist(self, *args, **kwargs):
-        '''
+        """
         Lists whether or not user follows a playlist
 
         Arguments:
@@ -699,13 +738,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     @_inject_user_id
     def create_playlist(self, *args, **kwargs):
-        '''
+        """
         Creates a playlist
 
         Arguments:
@@ -737,12 +776,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def follow_playlist(self, *args, **kwargs):
-        '''
+        """
         Follows a playlist
 
         Arguments:
@@ -764,12 +803,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def update_playlist(self, *args, **kwargs):
-        '''
+        """
         Updates a playlist
 
         Arguments:
@@ -801,12 +840,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def unfollow_playlist(self, *args, **kwargs):
-        '''
+        """
         Unfollow a playlist
 
         Arguments:
@@ -822,12 +861,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def delete_playlist(self, *args, **kwargs):
-        '''
+        """
         An alias to unfollow_playlist
 
         Arguments:
@@ -843,16 +882,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
-##### Playlist Contents
+    ##### Playlist Contents
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def playlist_tracks(self, *args, **kwargs):
-        '''
+        """
         List tracks in a playlist
 
         Arguments:
@@ -884,12 +922,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def add_playlist_tracks(self, *args, **kwargs):
-        '''
+        """
         Add tracks to a playlist
 
         Arguments:
@@ -913,12 +951,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def reorder_playlist_track(self, *args, **kwargs):
-        '''
+        """
         Reorder tracks in a playlist
 
         Arguments:
@@ -946,12 +984,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def delete_playlist_tracks(self, *args, **kwargs):
-        '''
+        """
         Delete tracks from a playlist
         
         https://developer.spotify.com/console/delete-playlist-tracks/
@@ -994,16 +1032,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
-##### Tracks
+    ##### Tracks
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def user_tracks(self, *args, **kwargs):
-        '''
+        """
         List user's tracks
 
         Arguments:
@@ -1027,13 +1064,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def tracks(self, *args, **kwargs):
-        '''
+        """
         List tracks
 
         Arguments:
@@ -1053,12 +1090,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def owns_tracks(self, *args, **kwargs):
-        '''
+        """
         Lists whether or not current user owns tracks
 
         Arguments:
@@ -1074,12 +1111,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def save_tracks(self, *args, **kwargs):
-        '''
+        """
         Save tracks
 
         Arguments:
@@ -1095,12 +1132,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def delete_tracks(self, *args, **kwargs):
-        '''
+        """
         Delete user's tracks
 
         Arguments:
@@ -1115,14 +1152,14 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-##### Artists
+    ##### Artists
 
     @_dispatch_request
     def artists(self, *args, **kwargs):
-        '''
+        """
         List artists
 
         Arguments:
@@ -1137,12 +1174,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def followed_artists(self, *args, **kwargs):
-        '''
+        """
         List artists followed by current user
 
         Arguments:
@@ -1162,12 +1199,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def follows_artists(self, *args, **kwargs):
-        '''
+        """
         Whether or not current user follows an artist(s)
 
         Arguments:
@@ -1183,12 +1220,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def follow_artists(self, *args, **kwargs):
-        '''
+        """
         Follow an artist(s)
 
         Arguments:
@@ -1204,12 +1241,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def unfollow_artists(self, *args, **kwargs):
-        '''
+        """
         Unfollow artist(s)
 
         Arguments:
@@ -1225,12 +1262,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def artist_related_artists(self, *args, **kwargs):
-        '''
+        """
         List artists related to an artist
 
         Arguments:
@@ -1246,13 +1283,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('country')
+    @_default_to_locale("country")
     def artist_top_tracks(self, *args, **kwargs):
-        '''
+        """
         List top tracks of an artist
 
         Arguments:
@@ -1272,15 +1309,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-##### Albums
+    ##### Albums
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def albums(self, *args, **kwargs):
-        '''
+        """
         List Albums
 
         Arguments:
@@ -1300,12 +1337,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def user_albums(self, *args, **kwargs):
-        '''
+        """
         Albums owned by current user
 
         Arguments:
@@ -1325,13 +1362,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def owns_albums(self, *args, **kwargs):
-        '''
+        """
         Whether or not current user owns an album(s)
 
         Arguments:
@@ -1347,13 +1383,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def save_albums(self, *args, **kwargs):
-        '''
+        """
         Save Albums
 
         Arguments:
@@ -1369,13 +1404,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def delete_albums(self, *args, **kwargs):
-        '''
+        """
         Delete Albums
 
         Arguments:
@@ -1391,15 +1425,14 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
-##### Users
+    ##### Users
 
     @_dispatch_request
     def me(self, *args, **kwargs):
-        '''
+        """
         List current user's profile
 
         Returns:
@@ -1409,13 +1442,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def user_profile(self, *args, **kwargs):
-        '''
+        """
         List a user's profile
 
         Arguments:
@@ -1431,13 +1463,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def follows_users(self, *args, **kwargs):
-        '''
+        """
         Whether or not current user follows a user(s)
 
         Arguments:
@@ -1453,13 +1484,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def follow_users(self, *args, **kwargs):
-        '''
+        """
         Follow a user
 
         Arguments:
@@ -1475,12 +1505,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def unfollow_users(self, *args, **kwargs):
-        '''
+        """
         Unfollow user(s)
 
         Arguments:
@@ -1496,17 +1526,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
-
-##### Others
+    ##### Others
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def album_tracks(self, *args, **kwargs):
-        '''
+        """
         List tracks of an album
 
         Arguments:
@@ -1534,14 +1562,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def artist_albums(self, *args, **kwargs):
-        '''
+        """
         List albums of an artist
 
         Arguments:
@@ -1573,13 +1600,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def user_top_tracks(self, *args, **kwargs):
-        '''
+        """
         List top tracks of a user
 
         Arguments:
@@ -1603,13 +1629,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def user_top_artists(self, *args, **kwargs):
-        '''
+        """
         List top artists of a user
 
         Arguments:
@@ -1633,13 +1658,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def next_page(self, *args, **kwargs):
-        '''
+        """
         Next Page
 
         Note:
@@ -1665,13 +1689,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
-
 
     @_dispatch_request
     def previous_page(self, *args, **kwargs):
-        '''
+        """
         Previous Page
 
         Note:
@@ -1697,16 +1720,15 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
-
-##### Personalization & Explore
+    ##### Personalization & Explore
 
     @_dispatch_request
-    @_default_to_locale('country', support_from_token=False)
+    @_default_to_locale("country", support_from_token=False)
     def category(self, *args, **kwargs):
-        '''
+        """
         List Category
 
         Arguments:
@@ -1730,13 +1752,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('country', support_from_token=False)
+    @_default_to_locale("country", support_from_token=False)
     def categories(self, *args, **kwargs):
-        '''
+        """
         List Categories
 
         Arguments:
@@ -1764,13 +1786,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('country', support_from_token=False)
+    @_default_to_locale("country", support_from_token=False)
     def category_playlist(self, *args, **kwargs):
-        '''
+        """
         List playlists from a category
 
         Arguments:
@@ -1798,12 +1820,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def available_genre_seeds(self, *args, **kwargs):
-        '''
+        """
         Available genre seeds
 
         Returns:
@@ -1813,13 +1835,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('country', support_from_token=False)
+    @_default_to_locale("country", support_from_token=False)
     def featured_playlists(self, *args, **kwargs):
-        '''
+        """
         Featured Playlists
 
         Arguments:
@@ -1851,13 +1873,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('country', support_from_token=False)
+    @_default_to_locale("country", support_from_token=False)
     def new_releases(self, *args, **kwargs):
-        '''
+        """
         New Releases
 
         Arguments:
@@ -1881,13 +1903,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('market')
+    @_default_to_locale("market")
     def search(self, *args, **kwargs):
-        ''' 
+        """ 
         Search
 
         Examples:
@@ -1929,12 +1951,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def track_audio_analysis(self, *args, **kwargs):
-        ''' 
+        """ 
         List audio analysis of a track
 
         Arguments:
@@ -1950,12 +1972,12 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
     def tracks_audio_features(self, *args, **kwargs):
-        ''' 
+        """ 
         List audio features of tracks
 
         Arguments:
@@ -1971,13 +1993,13 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request
-    @_default_to_locale('market', support_from_token=False)
+    @_default_to_locale("market", support_from_token=False)
     def recommendations(self, *args, **kwargs):
-        '''
+        """
         List Recommendations
 
         https://developer.spotify.com/documentation/web-api/reference/browse/get-recommendations/
@@ -2179,5 +2201,5 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs

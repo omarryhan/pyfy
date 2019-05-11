@@ -5,6 +5,5 @@ from pyfy.utils import (
     _build_full_url,
     _safe_query_string,
     _get_key_recursively,
-    _safe_getitem
+    _safe_getitem,
 )
-

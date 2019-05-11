@@ -2,6 +2,7 @@ import datetime
 import warnings
 import secrets
 from urllib import parse
+
 try:
     import ujson as json
 except:
@@ -9,7 +10,10 @@ except:
 
 
 def _create_secret(bytes_length=32):  # pragma: no cover
-    return secrets.base64.standard_b64encode(secrets.token_bytes(bytes_length)).decode('utf-8')
+    return secrets.base64.standard_b64encode(secrets.token_bytes(bytes_length)).decode(
+        "utf-8"
+    )
+
 
 def _safe_getitem(dct, *keys):
     for key in keys:
@@ -21,10 +25,12 @@ def _safe_getitem(dct, *keys):
 
 
 def _get_key_recursively(response, key, limit):
-    ''' Recursively search for a key in a response 
-    Not really sure if that's the most elegant solution.'''
+    """ Recursively search for a key in a response 
+    Not really sure if that's the most elegant solution."""
     if response is None:
-        raise TypeError('Either provide a response or a URL for the next_page and previous_page methods')
+        raise TypeError(
+            "Either provide a response or a URL for the next_page and previous_page methods"
+        )
 
     stack = [response]
     iters_performed = 0
@@ -38,7 +44,7 @@ def _get_key_recursively(response, key, limit):
         # If not in current stack make a new stack with the second layer of each dict in the original stack
         new_stack = []
         for dct in stack:
-            for k , v in dct.items():
+            for k, v in dct.items():
                 if type(v) == dict:
                     new_stack.append(v)
 
@@ -62,10 +68,12 @@ def _safe_query_string(query):
 
 def _build_full_url(url, query):
     if not isinstance(query, dict) or not isinstance(url, str):
-        raise TypeError('Queries must be an instance of a dict and url must be an instance of string in order to be properly encoded')
+        raise TypeError(
+            "Queries must be an instance of a dict and url must be an instance of string in order to be properly encoded"
+        )
     safe_query = _safe_query_string(query)
     if safe_query:
-        url = url + '?'
+        url = url + "?"
     return url + parse.urlencode(safe_query)
 
 
@@ -82,7 +90,7 @@ def _safe_json_dict(data):
 
 def _comma_join_list(list_):
     if type(list_) == list:
-        return ','.join(list_)
+        return ",".join(list_)
     return list_
 
 
@@ -96,13 +104,14 @@ def _is_single_resource(resource):
 
 
 def _convert_to_iso_date(date):  # pragma: no cover
-    ''' marked as private as user won't need this for the currently supported endpoints '''
+    """ marked as private as user won't need this for the currently supported endpoints """
     return date.isoformat()
 
 
 def convert_from_iso_date(date):  # pragma: no cover
-    ''' utility method that can convert dates returned from Spotify's API '''
+    """ utility method that can convert dates returned from Spotify's API """
     return datetime.date.fromisoformat(date)
+
 
 class _Dict(dict):  # pragma: no cover
     def __init__(self, *args, **kwargs):  # pragma: no cover

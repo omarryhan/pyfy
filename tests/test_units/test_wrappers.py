@@ -18,26 +18,28 @@ def test_and_get_me_attr_attr_exists():
     spt = Spotify()
 
     spt.user_creds = UserCreds()
-    spt.user_creds.id = 'id1234'
+    spt.user_creds.id = "id1234"
 
-    assert _set_and_get_me_attr_sync(spt, 'id') == 'id1234'
+    assert _set_and_get_me_attr_sync(spt, "id") == "id1234"
+
 
 @pytest.mark.asyncio
 async def test_and_get_me_attr_attr_exists_async():
     spt = AsyncSpotify()
 
     spt.user_creds = UserCreds()
-    spt.user_creds.id = 'id1234'
+    spt.user_creds.id = "id1234"
 
-    assert await _set_and_get_me_attr_async(spt, 'id') == 'id1234'
-    
+    assert await _set_and_get_me_attr_async(spt, "id") == "id1234"
+
 
 def test_inject_user_id():
     pass
 
+
 def test_default_to_locale():
     pass
 
+
 def test_dispatch_request():
     pass
-    

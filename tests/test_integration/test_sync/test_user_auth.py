@@ -8,19 +8,35 @@ import pytest
 empty_client_creds = ClientCreds()
 
 
-def test_user_is_authenticated_by_access_token(user_creds_from_env, client_creds_from_env):
-    '''
+def test_user_is_authenticated_by_access_token(
+    user_creds_from_env, client_creds_from_env
+):
+    """
     This will also work if you provide an empty client creds model. But when the access token eventually expires you'll need valid client creds to refresh it
-    '''
-    Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
+    """
+    Spotify(
+        client_creds=client_creds_from_env,
+        user_creds=user_creds_from_env,
+        ensure_user_auth=True,
+    )
 
 
-def test_user_is_rejected_with_bad_access_token(user_creds_from_env, client_creds_from_env):
-    user_creds_from_env.access_token = 'BAD_ACCESS_TOKEN'
+def test_user_is_rejected_with_bad_access_token(
+    user_creds_from_env, client_creds_from_env
+):
+    user_creds_from_env.access_token = "BAD_ACCESS_TOKEN"
     with pytest.raises(AuthError):
-        Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
+        Spotify(
+            client_creds=client_creds_from_env,
+            user_creds=user_creds_from_env,
+            ensure_user_auth=True,
+        )
 
 
 def test_authenticated_user_is_authorized(user_creds_from_env, client_creds_from_env):
-    spotify = Spotify(client_creds=client_creds_from_env, user_creds=user_creds_from_env, ensure_user_auth=True)
+    spotify = Spotify(
+        client_creds=client_creds_from_env,
+        user_creds=user_creds_from_env,
+        ensure_user_auth=True,
+    )
     assert spotify.me()

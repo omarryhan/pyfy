@@ -3,6 +3,7 @@
   <p align="center">
     <a href="https://travis-ci.org/omarryhan/pyfy"><img alt="Build Status" src="https://travis-ci.org/omarryhan/pyfy.svg?branch=master"></a>
     <a href="https://github.com/omarryhan/pyfy"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="https://github.com/python/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg" /></a>
     <a href="https://pepy.tech/badge/pyfy"><img alt="Downloads" src="https://pepy.tech/badge/pyfy"></a>
     <a href="https://pepy.tech/badge/pyfy/month"><img alt="Monthly Downloads" src="https://pepy.tech/badge/pyfy/month"></a>
   </p>
@@ -28,6 +29,40 @@
 - Fit for both production and experimental/personal environments
 - Begginner friendly interface
 - Almost identical Async and Sync Interfaces
+
+## Quick Start
+
+**Sync:**
+
+```python 3.7
+from pyfy import Spotify
+
+spt = Spotify('your_access_token')
+
+spt.user_playlists()
+spt.play()
+spt.volume(85)
+spt.next()
+spt.pause()
+results = spt.search(q='alice in chains them bones')
+print(results)
+```
+
+**Async:**
+
+```python 3.7
+import asyncio
+from pyfy import AsyncSpotify
+
+spt = AsyncSpotify('your_access_token')
+
+async def query():
+    return await spt.search('Like a motherless child')
+
+res = asyncio.run(query())
+
+print(res)
+```
 
 ## Documentation 📑
 

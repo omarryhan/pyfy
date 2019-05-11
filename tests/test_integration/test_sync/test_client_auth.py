@@ -15,7 +15,7 @@ def test_client_credentials_oauth(spotify_client_auth):
 
 
 def test_client_credentials_oauth_invalid(spotify_client_auth):
-    spotify_client_auth.client_creds.client_id = 'BAD_CLIENT_ID'
+    spotify_client_auth.client_creds.client_id = "BAD_CLIENT_ID"
     with pytest.raises(AuthError) as e:
         spotify_client_auth.authorize_client_creds()
 
