@@ -413,9 +413,9 @@ class _BaseClient:
         **kwargs,
     ):
         url = BASE_URI + "/me/player/play"
+        params = dict(device_id=device_id)
         if resource_id and resource_type:
             context_uri = "spotify:" + resource_type + ":" + resource_id
-            params = dict(device_id=device_id)
             if resource_type == "track":
                 data = _safe_json_dict(
                     dict(uris=list(context_uri), position_ms=position_ms)
@@ -429,7 +429,6 @@ class _BaseClient:
                     if offset_data:
                         data["offset"] = offset_data
         else:
-            params = dict(device_id=device_id)
             data = {}
 
         #    JSON e.g.
