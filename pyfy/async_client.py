@@ -508,41 +508,39 @@ class AsyncSpotify(_BaseClient):
         """
         Starts playback
 
-        Note:
-        
-            Available resource types:
-            
-            - 'track'
-            
-            - 'artist'
-            
-            - 'playlist'
-            
-            - 'podcast'
-            
-            - 'user' 
-            
-            * There might be more
-        
+        Play a list of one or more tracks, or a specific artist, album or playlist.
+        Only one of track_ids, album_id, artist_id, playlist_id should be specified.
+        Start playback at offset_position OR offset_uri, only if artist_id is not being used.
+
         Arguments:
 
-            resource_id (str): 
-            
+            track_ids (list, tuple, str):
+
                 * Optional
 
-                * ID of the resource
+                * List, string or tuple containing track ID(s).
 
-            resource_type (str):
-            
+            album_id (str):
+
                 * Optional
 
-                * Type of the resource.
+            artist_id (str):
+
+                * Optional
+
+            playlist_id (str):
+
+                * Optional
 
             device_id (str):
 
                 * Optional
 
-            offset_position (int): 
+            offset_position (int):
+
+                * Optional
+
+            offset_uri (str):
 
                 * Optional
 

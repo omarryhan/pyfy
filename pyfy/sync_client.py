@@ -345,11 +345,11 @@ class Spotify(_BaseClient):
 
         Arguments:
 
-            track_ids (list, str):
+            track_ids (list, tuple, str):
 
                 * Optional
 
-                * List containing track ID(s).
+                * List, string or tuple containing track ID(s).
 
             album_id (str):
 
