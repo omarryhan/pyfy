@@ -276,18 +276,11 @@ class UserCreds(_Creds):
         scopes=None,
         expiry=None,
         user_id=None,
-        state=None,
     ):
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.expiry = expiry  # expiry date. Not to be confused with expires in
         self.user_id = user_id
-        if state is not None:
-            warnings.warn(
-                "user_creds.state is deprecated and will soon be removed",
-                DeprecationWarning,
-            )
-        self.state = state
         self.country = None
         self.scopes = scopes or []
 

@@ -47,7 +47,6 @@ class _BaseClient:
         proxies,
         timeout,
         max_retries,
-        enforce_state_check,
         backoff_factor,
         default_to_locale,
         cache,
@@ -90,14 +89,6 @@ class _BaseClient:
         if sess is not None:
             self._session = sess
 
-        # Api defaults
-        if enforce_state_check is not None:
-            warning_msg = """
-            The use of enforce_state_check when constructing a Pyfy client is deprecated. 
-            The argument will be removed soon. You should manually validate a user's "state"
-            """
-            warnings.warn(warning_msg, DeprecationWarning)
-        self.enforce_state_check = enforce_state_check
         self.ensure_user_auth = ensure_user_auth
         self.default_to_locale = default_to_locale
         self._populate_user_creds_ = populate_user_creds

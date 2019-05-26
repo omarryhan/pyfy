@@ -102,7 +102,6 @@ class AsyncSpotify(_BaseClient):
         proxy_auth=None,
         timeout=7,
         max_retries=10,
-        enforce_state_check=None,
         backoff_factor=0.1,
         default_to_locale=True,
         populate_user_creds=True,
@@ -124,7 +123,6 @@ class AsyncSpotify(_BaseClient):
             proxies,
             timeout,
             max_retries,
-            enforce_state_check,
             backoff_factor,
             default_to_locale,
             cache,
@@ -423,7 +421,7 @@ class AsyncSpotify(_BaseClient):
 
     @_set_empty_user_creds_if_none
     async def build_user_creds(
-        self, grant, state=None, enforce_state_check=None, set_user_creds=True
+        self, grant, set_user_creds=True
     ):
         """
         Second part of OAuth2 authorization code flow, Raises an AuthError if unauthorized
@@ -438,17 +436,6 @@ class AsyncSpotify(_BaseClient):
 
             pyfy.creds.UserCreds: User Credentials Model
         """
-        if state is not None or enforce_state_check is not None:
-            warning_msg = """
-            state and enforce_state_check are deprecated and will be removed soon. 
-            Please remove those arguments and manually validate them instead
-            """
-            warnings.warn(warning_msg, DeprecationWarning)
-            check = enforce_state_check or self.enforce_state_check
-            if check is True:
-                if state != self.user_creds.state:
-                    raise AuthError("Invalid state")
-
         # Get user creds
         user_creds_json = await self._request_user_creds(grant)
         user_creds_model = self._user_json_to_object(user_creds_json)

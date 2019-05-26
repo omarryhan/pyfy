@@ -84,7 +84,7 @@ print(res)
 
 Big thank you to our amazing contributors:
 
-- [Exofeel](https://github.com/exofeel)
+- [exofeel](https://github.com/exofeel)
 - [Schiism](https://github.com/Schiism)
 - [kevinhynes](https://github.com/kevinhynes)
 
