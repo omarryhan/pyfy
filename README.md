@@ -78,6 +78,16 @@ print(res)
 
 1. Removed `Spotify.oauth_uri` property in favor of `Spotify.auth_uri` method.
 
+2. `Spotify.play()` now accepts, `track_ids`, `artist_ids` etc. instead of `resource_ids` + `resource_names`
+
+## Contributors
+
+Big thank you to our amazing contributors:
+
+- [Exofeel](https://github.com/exofeel)
+- [Schiism](https://github.com/Schiism)
+- [kevinhynes](https://github.com/kevinhynes)
+
 ## Contact 📧
 
 I currently work as a freelance software devloper. Like my work and got a gig for me?
