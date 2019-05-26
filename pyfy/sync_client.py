@@ -336,7 +336,7 @@ class Spotify(_BaseClient):
 
     @_dispatch_request
     def play(self, *args, **kwargs):
-        '''
+        """
         Starts playback
 
         Play a list of one or more tracks, or a specific artist, album or playlist.
@@ -386,7 +386,7 @@ class Spotify(_BaseClient):
         Raises:
 
             pyfy.excs.ApiError:
-        '''
+        """
         return args, kwargs
 
     @_dispatch_request

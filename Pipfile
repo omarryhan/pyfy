@@ -7,7 +7,7 @@ name = "pypi"
 pyfy = {path = "."}
 "flake8" = "*"
 pylint = "*"
-requests = {extras = ["socks"], version = "*"}
+requests = {extras = ["socks"],version = "*"}
 ujson = "*"
 aiodns = "*"
 cchardet = "*"
@@ -26,6 +26,7 @@ aiofiles = "*"
 [dev-packages]
 sanic = "*"
 flask = "*"
+black = "*"
 
 [requires]
 python_version = "3.6"

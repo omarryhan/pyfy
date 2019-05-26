@@ -374,10 +374,19 @@ class _BaseClient:
         params = dict()
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
-    def _prep_play(self, track_ids=None, album_id=None, artist_id=None, playlist_id=None,
-                   device_id=None, offset_position=None, offset_uri=None, position_ms=None,
-                   **kwargs):
-        url = BASE_URI + '/me/player/play'
+    def _prep_play(
+        self,
+        track_ids=None,
+        album_id=None,
+        artist_id=None,
+        playlist_id=None,
+        device_id=None,
+        offset_position=None,
+        offset_uri=None,
+        position_ms=None,
+        **kwargs,
+    ):
+        url = BASE_URI + "/me/player/play"
         params, data = dict(device_id=device_id), {}
 
         if track_ids:
@@ -398,7 +407,7 @@ class _BaseClient:
         if offset_position or offset_uri and not artist_id:
             offset_data = dict(position=offset_position, uri=offset_uri)
             if offset_data:
-                data['offset'] = offset_data
+                data["offset"] = offset_data
 
         #    JSON e.g.
         #    {
@@ -410,7 +419,9 @@ class _BaseClient:
         #        'position_ms': position_ms
         #    }
 
-        return self._create_request(method='PUT', url=_build_full_url(url, params), json=data)
+        return self._create_request(
+            method="PUT", url=_build_full_url(url, params), json=data
+        )
 
     def _prep_pause(self, device_id=None, **kwargs):
         url = BASE_URI + "/me/player/pause"
@@ -526,7 +537,7 @@ class _BaseClient:
         params = {}
         data = {}
         if public is not None:
-            data['public'] = public
+            data["public"] = public
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
@@ -544,13 +555,13 @@ class _BaseClient:
         params = {}
         data = {}
         if name is not None:
-            data['name'] = name
+            data["name"] = name
         if description is not None:
-            data['description'] = description
+            data["description"] = description
         if public is not None:
-            data['public'] = public
+            data["public"] = public
         if collaborative is not None:
-            data['collaborative'] = collaborative
+            data["collaborative"] = collaborative
 
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
@@ -602,11 +613,11 @@ class _BaseClient:
         data = {}
 
         if range_start is not None:
-            data['range_start'] = range_start
+            data["range_start"] = range_start
         if range_length is not None:
-            data['range_length'] = range_length
+            data["range_length"] = range_length
         if insert_before is not None:
-            data['insert_before'] = insert_before
+            data["insert_before"] = insert_before
 
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
@@ -636,7 +647,7 @@ class _BaseClient:
         params = {}
         data = {"tracks": []}
         if isinstance(track_ids, str):
-            data['tracks'].append({"uri": "spotify:track:" + track_ids})
+            data["tracks"].append({"uri": "spotify:track:" + track_ids})
         elif isinstance(track_ids, (list, tuple)):
             data = {"tracks": []}
             for track_id in track_ids:
@@ -906,7 +917,11 @@ class _BaseClient:
         """ 'track' or ['track'] or 'artist' or ['track','artist'] """
         url = BASE_URI + "/search"
         params = dict(
-            q=q, type=_safe_comma_join_list(types), market=market, limit=limit, offset=offset
+            q=q,
+            type=_safe_comma_join_list(types),
+            market=market,
+            limit=limit,
+            offset=offset,
         )
         return self._create_request(method="GET", url=_build_full_url(url, params))
 

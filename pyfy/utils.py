@@ -65,6 +65,7 @@ def _safe_query_string(query):
             safe_query[k] = v
     return safe_query
 
+
 def _build_full_url(url, query):
     if not isinstance(query, dict) or not isinstance(url, str):
         raise TypeError(
@@ -74,6 +75,7 @@ def _build_full_url(url, query):
     if safe_query:
         url = url + "?"
     return url + parse.urlencode(safe_query)
+
 
 def _safe_comma_join_list(list_):
     if type(list_) == list:

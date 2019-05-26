@@ -15,8 +15,14 @@ def test_play_single_track(spotify_user_auth, them_bones_track_id):
     assert spotify_user_auth.play(track_ids=them_bones_track_id) is not None
     assert spotify_user_auth.pause() is not None
 
-def test_play_multiple_tracks(spotify_user_auth, them_bones_track_id, cover_me_track_id):
-    assert spotify_user_auth.play(track_ids=[them_bones_track_id, cover_me_track_id]) is not None
+
+def test_play_multiple_tracks(
+    spotify_user_auth, them_bones_track_id, cover_me_track_id
+):
+    assert (
+        spotify_user_auth.play(track_ids=[them_bones_track_id, cover_me_track_id])
+        is not None
+    )
     assert spotify_user_auth.pause() is not None
 
 
