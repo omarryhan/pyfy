@@ -72,13 +72,21 @@ print(res)
 
     $ pip install pyfy
 
-## Backward Incompatible Changes
+## Backward Incompatibility Notices
 
 **V2:**
 
 1. Removed `Spotify.oauth_uri` property in favor of `Spotify.auth_uri` method.
 
 2. `Spotify.play()` now accepts, `track_ids`, `artist_ids` etc. instead of `resource_ids` + `resource_names`
+
+3. Oauth2 state handling:
+
+   - Removed deprecated `enforce_state_check` functionality
+
+   - Removed state attribute from `user_creds`
+
+   - Oauth2 state checking is no longer done by Pyfy's client and should be handled manually
 
 ## Contributors
 
