@@ -242,7 +242,6 @@ class _BaseClient:
         client_id = client_id or self.client_creds.client_id
         scopes_list = scopes or self.client_creds.scopes
         redirect_uri = redirect_uri or self.client_creds.redirect_uri
-        state = state or getattr(self.user_creds, "state", None)
         show_dialog = show_dialog or self.client_creds.show_dialog or False
         response_type = response_type or "code"
 
