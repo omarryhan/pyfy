@@ -20,10 +20,8 @@ from .utils import (
     _safe_getitem,
     _get_key_recursively,
     _build_full_url,
-    _safe_json_dict,
-    _comma_join_list,
+    _safe_comma_join_list,
     _is_single_resource,
-    _convert_to_iso_date,
     _Dict,
 )
 
@@ -408,9 +406,10 @@ class _BaseClient:
                    **kwargs):
         url = BASE_URI + '/me/player/play'
         params, data = dict(device_id=device_id), {}
+
         if track_ids:
             track_uris = ["spotify:track:" + track for track in track_ids]
-            data = _safe_json_dict(dict(uris=track_uris, position_ms=position_ms))
+            data = dict(uris=track_uris, position_ms=position_ms)
         elif album_id or artist_id or playlist_id:
             if album_id:
                 context_uri = "spotify:album:" + album_id
@@ -418,16 +417,16 @@ class _BaseClient:
                 context_uri = "spotify:artist:" + artist_id
             elif playlist_id:
                 context_uri = "spotify:playlist:" + playlist_id
-            data = _safe_json_dict(dict(context_uri=context_uri, position_ms=position_ms))
+            data = dict(context_uri=context_uri, position_ms=position_ms)
 
         if offset_position or offset_uri and not artist_id:
-            offset_data = _safe_json_dict(dict(position=offset_position, uri=offset_uri))
+            offset_data = dict(position=offset_position, uri=offset_uri)
             if offset_data:
                 data['offset'] = offset_data
 
         #    JSON e.g.
         #    {
-        #        'context_uri': context_uri, # or uris: [track_uris]
+        #        'context_uri': context_uri, # or 'uris': [track_uris]
         #        'offset': {
         #            'position': offset_position,
         #            'uri': offset_uri,
@@ -487,7 +486,7 @@ class _BaseClient:
     def _prep_playback_transfer(self, device_ids, **kwargs):
         url = BASE_URI + "/me/player"
         params = {}
-        data = _safe_json_dict(dict(device_ids=_comma_join_list(device_ids)))
+        data = dict(device_ids=_safe_comma_join_list(device_ids))
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
@@ -522,7 +521,7 @@ class _BaseClient:
         if user_ids is None:
             user_ids = user_id
         url = BASE_URI + "/playlists/" + playlist_id + "/followers/contains"
-        params = dict(ids=_comma_join_list(user_ids))
+        params = dict(ids=_safe_comma_join_list(user_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_create_playlist(
@@ -543,13 +542,13 @@ class _BaseClient:
             collaborative=collaborative,
         )
         return self._create_request(
-            method="POST", url=_build_full_url(url, params), json=_safe_json_dict(data)
+            method="POST", url=_build_full_url(url, params), json=data
         )
 
     def _prep_follow_playlist(self, playlist_id, public=None, **kwargs):
         url = BASE_URI + "/playlists/" + playlist_id + "/followers"
         params = {}
-        data = _safe_json_dict(dict(public=public))
+        data = dict(public=public)
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
@@ -572,7 +571,7 @@ class _BaseClient:
             collaborative=collaborative,
         )
         return self._create_request(
-            method="PUT", url=_build_full_url(url, params), json=_safe_json_dict(data)
+            method="PUT", url=_build_full_url(url, params), json=data
         )
         r.headers.update(self._json_content_type_header)
 
@@ -606,7 +605,7 @@ class _BaseClient:
         for track_id in track_ids:
             new_list.append("spotify:track:" + track_id)
 
-        params = dict(position=position, uris=_comma_join_list(new_list))
+        params = dict(position=position, uris=_safe_comma_join_list(new_list))
         return self._create_request(method="POST", url=_build_full_url(url, params))
 
     def _prep_reorder_playlist_track(
@@ -625,7 +624,7 @@ class _BaseClient:
             insert_before=insert_before,
         )
         return self._create_request(
-            method="PUT", url=_build_full_url(url, params), json=_safe_json_dict(data)
+            method="PUT", url=_build_full_url(url, params), json=data
         )
 
     def _prep_delete_playlist_tracks(self, playlist_id, track_ids, **kwargs):
@@ -683,10 +682,10 @@ class _BaseClient:
     def _prep_tracks(self, track_ids, market=None, **kwargs):
         if _is_single_resource(track_ids):
             return self._prep__track(
-                track_id=_comma_join_list(track_ids), market=market
+                track_id=_safe_comma_join_list(track_ids), market=market
             )
         url = BASE_URI + "/tracks"
-        params = dict(ids=_comma_join_list(track_ids), market=market)
+        params = dict(ids=_safe_comma_join_list(track_ids), market=market)
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep__track(self, track_id, market=None, **kwargs):
@@ -696,26 +695,26 @@ class _BaseClient:
 
     def _prep_owns_tracks(self, track_ids, **kwargs):
         url = BASE_URI + "/me/tracks/contains"
-        params = dict(ids=_comma_join_list(track_ids))
+        params = dict(ids=_safe_comma_join_list(track_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_save_tracks(self, track_ids, **kwargs):
         url = BASE_URI + "/me/tracks"
-        params = dict(ids=_comma_join_list(track_ids))
+        params = dict(ids=_safe_comma_join_list(track_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_delete_tracks(self, track_ids, **kwargs):
         url = BASE_URI + "/me/tracks"
-        params = dict(ids=_comma_join_list(track_ids))
+        params = dict(ids=_safe_comma_join_list(track_ids))
         return self._create_request(method="DELETE", url=_build_full_url(url, params))
 
     ##### Artists
 
     def _prep_artists(self, artist_ids, **kwargs):
         if _is_single_resource(artist_ids):
-            return self._prep__artist(_comma_join_list(artist_ids))
+            return self._prep__artist(_safe_comma_join_list(artist_ids))
         url = BASE_URI + "/artists"
-        params = dict(ids=_comma_join_list(artist_ids))
+        params = dict(ids=_safe_comma_join_list(artist_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep__artist(self, artist_id, **kwargs):
@@ -730,17 +729,17 @@ class _BaseClient:
 
     def _prep_follows_artists(self, artist_ids, **kwargs):
         url = BASE_URI + "/me/following/contains"
-        params = dict(type="artist", ids=_comma_join_list(artist_ids))
+        params = dict(type="artist", ids=_safe_comma_join_list(artist_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_follow_artists(self, artist_ids, **kwargs):
         url = BASE_URI + "/me/following"
-        params = dict(type="artist", ids=_comma_join_list(artist_ids))
+        params = dict(type="artist", ids=_safe_comma_join_list(artist_ids))
         return self._create_request(method="PUT", url=_build_full_url(url, params))
 
     def _prep_unfollow_artists(self, artist_ids, **kwargs):
         url = BASE_URI + "/me/following"
-        params = dict(type="artist", ids=_comma_join_list(artist_ids))
+        params = dict(type="artist", ids=_safe_comma_join_list(artist_ids))
         return self._create_request(method="DELETE", url=_build_full_url(url, params))
 
     def _prep_artist_related_artists(self, artist_id, **kwargs):
@@ -757,9 +756,9 @@ class _BaseClient:
 
     def _prep_albums(self, album_ids, market=None, **kwargs):
         if _is_single_resource(album_ids):
-            return self._prep__album(_comma_join_list(album_ids), market)
+            return self._prep__album(_safe_comma_join_list(album_ids), market)
         url = BASE_URI + "/albums"
-        params = dict(ids=_comma_join_list(album_ids), market=market)
+        params = dict(ids=_safe_comma_join_list(album_ids), market=market)
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep__album(self, album_id, market=None, **kwargs):
@@ -774,17 +773,17 @@ class _BaseClient:
 
     def _prep_owns_albums(self, album_ids, **kwargs):
         url = BASE_URI + "/me/albums/contains"
-        params = dict(ids=_comma_join_list(album_ids))
+        params = dict(ids=_safe_comma_join_list(album_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_save_albums(self, album_ids, **kwargs):
         url = BASE_URI + "/me/albums"
-        params = dict(ids=_comma_join_list(album_ids))
+        params = dict(ids=_safe_comma_join_list(album_ids))
         return self._create_request(method="PUT", url=_build_full_url(url, params))
 
     def _prep_delete_albums(self, album_ids, **kwargs):
         url = BASE_URI + "/me/albums"
-        params = dict(ids=_comma_join_list(album_ids))
+        params = dict(ids=_safe_comma_join_list(album_ids))
         return self._create_request(method="DELETE", url=_build_full_url(url, params))
 
     ##### Users
@@ -800,17 +799,17 @@ class _BaseClient:
 
     def _prep_follows_users(self, user_ids, **kwargs):
         url = BASE_URI + "/me/following/contains"
-        params = dict(type="user", ids=_comma_join_list(user_ids))
+        params = dict(type="user", ids=_safe_comma_join_list(user_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_follow_users(self, user_ids, **kwargs):
         url = BASE_URI + "/me/following"
-        params = dict(type="user", ids=_comma_join_list(user_ids))
+        params = dict(type="user", ids=_safe_comma_join_list(user_ids))
         return self._create_request(method="PUT", url=_build_full_url(url, params))
 
     def _prep_unfollow_users(self, user_ids, **kwargs):
         url = BASE_URI + "/me/following"
-        params = dict(type="user", ids=_comma_join_list(user_ids))
+        params = dict(type="user", ids=_safe_comma_join_list(user_ids))
         return self._create_request(method="DELETE", url=_build_full_url(url, params))
 
     ##### Others
@@ -899,7 +898,7 @@ class _BaseClient:
         **kwargs,
     ):
         if isinstance(timestamp, datetime.datetime):
-            timestamp = _convert_to_iso_date(timestamp)
+            timestamp = timestamp.iso_format()
         url = BASE_URI + "/browse/featured-playlists"
         params = dict(
             country=country,
@@ -921,7 +920,7 @@ class _BaseClient:
         """ 'track' or ['track'] or 'artist' or ['track','artist'] """
         url = BASE_URI + "/search"
         params = dict(
-            q=q, type=_comma_join_list(types), market=market, limit=limit, offset=offset
+            q=q, type=_safe_comma_join_list(types), market=market, limit=limit, offset=offset
         )
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
@@ -932,9 +931,9 @@ class _BaseClient:
 
     def _prep_tracks_audio_features(self, track_ids, **kwargs):
         if _is_single_resource(track_ids):
-            return self._prep__track_audio_features(_comma_join_list(track_ids))
+            return self._prep__track_audio_features(_safe_comma_join_list(track_ids))
         url = BASE_URI + "/audio-features"
-        params = dict(ids=_comma_join_list(track_ids))
+        params = dict(ids=_safe_comma_join_list(track_ids))
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep__track_audio_features(self, track_id, **kwargs):

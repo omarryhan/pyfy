@@ -65,7 +65,6 @@ def _safe_query_string(query):
             safe_query[k] = v
     return safe_query
 
-
 def _build_full_url(url, query):
     if not isinstance(query, dict) or not isinstance(url, str):
         raise TypeError(
@@ -76,19 +75,7 @@ def _build_full_url(url, query):
         url = url + "?"
     return url + parse.urlencode(safe_query)
 
-
-def _safe_json_dict(data):
-    safe_types = [float, str, int, bool, list]
-    safe_json = {}
-    for k, v in data.items():
-        if type(v) in safe_types:
-            safe_json[k] = v
-        elif type(v) == dict and len(v) > 0:
-            safe_json[k] = _safe_json_dict(v)
-    return safe_json
-
-
-def _comma_join_list(list_):
+def _safe_comma_join_list(list_):
     if type(list_) == list:
         return ",".join(list_)
     return list_
@@ -101,11 +88,6 @@ def _is_single_resource(resource):
     elif len(resource) == 1:
         return True
     return False
-
-
-def _convert_to_iso_date(date):  # pragma: no cover
-    """ marked as private as user won't need this for the currently supported endpoints """
-    return date.isoformat()
 
 
 def convert_from_iso_date(date):  # pragma: no cover
