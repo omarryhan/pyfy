@@ -81,8 +81,8 @@ def _safe_comma_join_list(list_):
     return list_
 
 
-def _is_single_resource(resource):
-    single_types = [int, str, float]
+def _is_single_json_type(resource):
+    single_types = [int, str, float, bool]
     if type(resource) in single_types:
         return True
     elif len(resource) == 1:

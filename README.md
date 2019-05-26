@@ -72,6 +72,12 @@ print(res)
 
     $ pip install pyfy
 
+## Backward Incompatible Changes
+
+**V2:**
+
+1. Removed `Spotify.oauth_uri` property in favor of `Spotify.auth_uri` method.
+
 ## Contact 📧
 
 I currently work as a freelance software devloper. Like my work and got a gig for me?

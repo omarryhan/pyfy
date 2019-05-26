@@ -6,31 +6,26 @@ def test_recently_played_tracks(spotify_user_auth):
     assert spotify_user_auth.recently_played_tracks()
 
 
-def test_play(spotify_user_auth, reise_reise_album_id):
-    assert spotify_user_auth.play(reise_reise_album_id, "album") is not None
-
-
-def test_pause(spotify_user_auth):
+def test_play_album(spotify_user_auth, reise_reise_album_id):
+    assert spotify_user_auth.play(album_id=reise_reise_album_id) is not None
     assert spotify_user_auth.pause() is not None
 
 
-def test_play(spotify_user_auth, them_bones_track_id):
-    assert spotify_user_auth.play(them_bones_track_id, "artist") is not None
+def test_play_single_track(spotify_user_auth, them_bones_track_id):
+    assert spotify_user_auth.play(track_ids=them_bones_track_id) is not None
+    assert spotify_user_auth.pause() is not None
 
-
-def test_pause(spotify_user_auth):
+def test_play_multiple_tracks(spotify_user_auth, them_bones_track_id, cover_me_track_id):
+    assert spotify_user_auth.play(track_ids=[them_bones_track_id, cover_me_track_id]) is not None
     assert spotify_user_auth.pause() is not None
 
 
-def test_play(spotify_user_auth, depeche_mode_artist_id):
-    assert spotify_user_auth.play(depeche_mode_artist_id) is not None
-
-
-def test_pause(spotify_user_auth):
+def test_play_artist(spotify_user_auth, depeche_mode_artist_id):
+    assert spotify_user_auth.play(artist_id=depeche_mode_artist_id) is not None
     assert spotify_user_auth.pause() is not None
 
 
-def test_play(spotify_user_auth):
+def test_play_with_no_args(spotify_user_auth):
     assert spotify_user_auth.play() is not None
 
 

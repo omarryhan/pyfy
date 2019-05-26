@@ -21,7 +21,7 @@ from .utils import (
     _get_key_recursively,
     _build_full_url,
     _safe_comma_join_list,
-    _is_single_resource,
+    _is_single_json_type,
     _Dict,
 )
 
@@ -218,33 +218,6 @@ class _BaseClient:
         """
         return self.client_creds.is_oauth_ready
 
-    @property
-    @_set_empty_user_creds_if_none
-    def oauth_uri(self):
-        """
-        Generate OAuth2 URI for authentication (Deprecated)
-
-        Returns:
-
-            str: OAuth2 Authorizatoin URI
-        """
-        warnings.warn(
-            "oauth_uri property is deprecated in favor of auth_uri() method and will be removed soon",
-            DeprecationWarning,
-        )
-        params = {
-            "client_id": self.client_creds.client_id,
-            "response_type": "code",
-            "scope": " ".join(self.client_creds.scopes),
-            "show_dialog": json.dumps(self.client_creds.show_dialog),
-        }
-        params = urlencode(params)
-        redirect_uri = self.client_creds.redirect_uri
-        uri = f"{OAUTH_AUTHORIZE_URL}?redirect_uri={redirect_uri}&{params}"
-        if self.user_creds.state is not None:
-            uri = uri + f"&state={self.user_creds.state}"
-        return uri
-
     def auth_uri(
         self,
         state=None,
@@ -408,7 +381,10 @@ class _BaseClient:
         params, data = dict(device_id=device_id), {}
 
         if track_ids:
-            track_uris = ["spotify:track:" + track for track in track_ids]
+            if isinstance(track_ids, str):
+                track_uris = ["spotify:track:" + track_ids]
+            else:
+                track_uris = ["spotify:track:" + track for track in track_ids]
             data = dict(uris=track_uris, position_ms=position_ms)
         elif album_id or artist_id or playlist_id:
             if album_id:
@@ -680,7 +656,7 @@ class _BaseClient:
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_tracks(self, track_ids, market=None, **kwargs):
-        if _is_single_resource(track_ids):
+        if _is_single_json_type(track_ids):
             return self._prep__track(
                 track_id=_safe_comma_join_list(track_ids), market=market
             )
@@ -711,7 +687,7 @@ class _BaseClient:
     ##### Artists
 
     def _prep_artists(self, artist_ids, **kwargs):
-        if _is_single_resource(artist_ids):
+        if _is_single_json_type(artist_ids):
             return self._prep__artist(_safe_comma_join_list(artist_ids))
         url = BASE_URI + "/artists"
         params = dict(ids=_safe_comma_join_list(artist_ids))
@@ -755,7 +731,7 @@ class _BaseClient:
     ##### Albums
 
     def _prep_albums(self, album_ids, market=None, **kwargs):
-        if _is_single_resource(album_ids):
+        if _is_single_json_type(album_ids):
             return self._prep__album(_safe_comma_join_list(album_ids), market)
         url = BASE_URI + "/albums"
         params = dict(ids=_safe_comma_join_list(album_ids), market=market)
@@ -930,7 +906,7 @@ class _BaseClient:
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
     def _prep_tracks_audio_features(self, track_ids, **kwargs):
-        if _is_single_resource(track_ids):
+        if _is_single_json_type(track_ids):
             return self._prep__track_audio_features(_safe_comma_join_list(track_ids))
         url = BASE_URI + "/audio-features"
         params = dict(ids=_safe_comma_join_list(track_ids))
