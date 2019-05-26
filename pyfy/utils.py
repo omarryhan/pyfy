@@ -78,7 +78,7 @@ def _build_full_url(url, query):
 
 
 def _safe_json_dict(data):
-    safe_types = [float, str, int, bool]
+    safe_types = [float, str, int, bool, list]
     safe_json = {}
     for k, v in data.items():
         if type(v) in safe_types:

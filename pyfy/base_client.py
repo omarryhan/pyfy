@@ -403,46 +403,39 @@ class _BaseClient:
         params = dict()
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
-    def _prep_play(
-        self,
-        resource_id=None,
-        resource_type="track",
-        device_id=None,
-        offset_position=None,
-        position_ms=None,
-        **kwargs,
-    ):
-        url = BASE_URI + "/me/player/play"
-        params = dict(device_id=device_id)
-        if resource_id and resource_type:
-            context_uri = "spotify:" + resource_type + ":" + resource_id
-            if resource_type == "track":
-                data = _safe_json_dict(
-                    dict(uris=list(context_uri), position_ms=position_ms)
-                )
-            else:
-                data = _safe_json_dict(
-                    dict(context_uri=context_uri, position_ms=position_ms)
-                )
-                if offset_position:
-                    offset_data = _safe_json_dict(dict(position=offset_position))
-                    if offset_data:
-                        data["offset"] = offset_data
-        else:
-            data = {}
+    def _prep_play(self, track_ids=None, album_id=None, artist_id=None, playlist_id=None,
+                   device_id=None, offset_position=None, offset_uri=None, position_ms=None,
+                   **kwargs):
+        url = BASE_URI + '/me/player/play'
+        params, data = dict(device_id=device_id), {}
+        if track_ids:
+            track_uris = ["spotify:track:" + track for track in track_ids]
+            data = _safe_json_dict(dict(uris=track_uris, position_ms=position_ms))
+        elif album_id or artist_id or playlist_id:
+            if album_id:
+                context_uri = "spotify:album:" + album_id
+            elif artist_id:
+                context_uri = "spotify:artist:" + artist_id
+            elif playlist_id:
+                context_uri = "spotify:playlist:" + playlist_id
+            data = _safe_json_dict(dict(context_uri=context_uri, position_ms=position_ms))
+
+        if offset_position or offset_uri and not artist_id:
+            offset_data = _safe_json_dict(dict(position=offset_position, uri=offset_uri))
+            if offset_data:
+                data['offset'] = offset_data
 
         #    JSON e.g.
         #    {
-        #        'context_uri': context_uri, # or uris: [context_uris]
+        #        'context_uri': context_uri, # or uris: [track_uris]
         #        'offset': {
-        #            'position': offset_position
+        #            'position': offset_position,
+        #            'uri': offset_uri,
         #        },
         #        'position_ms': position_ms
         #    }
 
-        return self._create_request(
-            method="PUT", url=_build_full_url(url, params), json=data
-        )
+        return self._create_request(method='PUT', url=_build_full_url(url, params), json=data)
 
     def _prep_pause(self, device_id=None, **kwargs):
         url = BASE_URI + "/me/player/pause"
