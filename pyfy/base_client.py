@@ -512,12 +512,15 @@ class _BaseClient:
     ):
         url = BASE_URI + "/users/" + user_id + "/playlists"
         params = {}
-        data = dict(
-            name=name,
-            description=description,
-            public=public,
-            collaborative=collaborative,
-        )
+        data = dict(name=name)
+
+        if description is not None:
+            data['description'] = description
+        if public is not None:
+            data['public'] = public
+        if collaborative is not None:
+            data['collaborative']
+
         return self._create_request(
             method="POST", url=_build_full_url(url, params), json=data
         )
