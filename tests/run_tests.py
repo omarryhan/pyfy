@@ -28,8 +28,8 @@ def run():
                 "--cov",
                 "pyfy/",
                 "tests/test_units/",
-                "tests/test_integration/test_async/",
                 "tests/test_integration/test_sync/",
+                "tests/test_integration/test_async/",
             ]
         )
     elif (

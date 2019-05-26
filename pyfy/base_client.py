@@ -524,7 +524,9 @@ class _BaseClient:
     def _prep_follow_playlist(self, playlist_id, public=None, **kwargs):
         url = BASE_URI + "/playlists/" + playlist_id + "/followers"
         params = {}
-        data = dict(public=public)
+        data = {}
+        if public is not None:
+            data['public'] = public
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
@@ -540,16 +542,19 @@ class _BaseClient:
     ):
         url = BASE_URI + "/playlists/" + playlist_id
         params = {}
-        data = dict(
-            name=name,
-            description=description,
-            public=public,
-            collaborative=collaborative,
-        )
+        data = {}
+        if name is not None:
+            data['name'] = name
+        if description is not None:
+            data['description'] = description
+        if public is not None:
+            data['public'] = public
+        if collaborative is not None:
+            data['collaborative'] = collaborative
+
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
-        r.headers.update(self._json_content_type_header)
 
     def _prep_unfollow_playlist(self, playlist_id, **kwargs):
         url = BASE_URI + "/playlists/" + playlist_id + "/followers"
@@ -594,11 +599,15 @@ class _BaseClient:
     ):
         url = BASE_URI + "/playlists/" + playlist_id + "/tracks"
         params = {}
-        data = dict(
-            range_start=range_start,
-            range_length=range_length,
-            insert_before=insert_before,
-        )
+        data = {}
+
+        if range_start is not None:
+            data['range_start'] = range_start
+        if range_length is not None:
+            data['range_length'] = range_length
+        if insert_before is not None:
+            data['insert_before'] = insert_before
+
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
@@ -625,16 +634,17 @@ class _BaseClient:
         # https://developer.spotify.com/console/delete-playlist-tracks/
         url = BASE_URI + "/playlists/" + playlist_id + "/tracks"
         params = {}
-        if type(track_ids) == str:
-            track_ids = list(track_ids)
-        elif type(track_ids) == list:
+        data = {"tracks": []}
+        if isinstance(track_ids, str):
+            data['tracks'].append({"uri": "spotify:track:" + track_ids})
+        elif isinstance(track_ids, (list, tuple)):
             data = {"tracks": []}
             for track_id in track_ids:
                 if type(track_id) == str:
                     data["tracks"].append({"uri": "spotify:track:" + track_id})
                 elif type(track_id) == dict:
                     positions = track_id.get("positions")
-                    if type(positions) == str or int:
+                    if isinstance(positions, (str, int)):
                         positions = [positions]
                     data["tracks"].append(
                         {
@@ -643,7 +653,7 @@ class _BaseClient:
                         }
                     )
         else:
-            raise TypeError("track_ids must be an instance of list or string")
+            raise TypeError("track_ids must be an instance of list, tuple or string")
         return self._create_request(
             method="DELETE", url=_build_full_url(url, params), json=data
         )
