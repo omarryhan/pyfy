@@ -312,22 +312,20 @@ class UserCreds(_Creds):
 
 def _set_empty_user_creds_if_none(f):
     @wraps(f)
-    def wrapper(*args, **kwargs):
-        self = args[0]
+    def wrapper(self, *args, **kwargs):
         if self.user_creds is None:
             self._user_creds = UserCreds()
         self._caller = self.user_creds
-        return f(*args, **kwargs)
+        return f(self, *args, **kwargs)
 
     return wrapper
 
 
 def _set_empty_client_creds_if_none(f):
     @wraps(f)
-    def wrapper(*args, **kwargs):
-        self = args[0]
+    def wrapper(self, *args, **kwargs):
         if self.client_creds is None:
             self.client_creds = ClientCreds()
-        return f(*args, **kwargs)
+        return f(self, *args, **kwargs)
 
     return wrapper

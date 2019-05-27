@@ -67,25 +67,26 @@ def _safe_query_string(query):
 
 
 def _build_full_url(url, query):
-    if not isinstance(query, dict) or not isinstance(url, str):
+    if not isinstance(query, (dict, str)):
         raise TypeError(
-            "Queries must be an instance of a dict and url must be an instance of string in order to be properly encoded"
+            "Queries must be an instance of either a dict or string"
         )
     safe_query = _safe_query_string(query)
     if safe_query:
-        url = url + "?"
-    return url + parse.urlencode(safe_query)
+        return url + "?" + parse.urlencode(safe_query)
+    else:
+        return url
 
 
 def _safe_comma_join_list(list_):
-    if type(list_) == list:
+    if isinstance(list_, (list, tuple)):
         return ",".join(list_)
-    return list_
+    else:
+        return list_
 
 
 def _is_single_json_type(resource):
-    single_types = [int, str, float, bool]
-    if type(resource) in single_types:
+    if isinstance(resource, (int, str, float, bool)):
         return True
     elif len(resource) == 1:
         return True
