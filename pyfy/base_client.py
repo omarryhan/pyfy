@@ -519,7 +519,7 @@ class _BaseClient:
         if public is not None:
             data['public'] = public
         if collaborative is not None:
-            data['collaborative']
+            data['collaborative'] = collaborative
 
         return self._create_request(
             method="POST", url=_build_full_url(url, params), json=data
