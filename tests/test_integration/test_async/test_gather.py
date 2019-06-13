@@ -1,6 +1,3 @@
-import asyncio
-from inspect import iscoroutine
-
 import pytest
 
 

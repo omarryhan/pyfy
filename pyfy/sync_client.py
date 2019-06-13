@@ -1,10 +1,7 @@
 import logging
-import datetime
-from urllib import parse
 from urllib3.util import Retry
-import warnings
 
-from requests import Request, Session, Response
+from requests import Session, Response
 from requests.exceptions import HTTPError, Timeout
 from requests.adapters import HTTPAdapter
 from cachecontrol import CacheControlAdapter
@@ -18,7 +15,7 @@ from .wrappers import (
     _default_to_locale,
     _inject_user_id,
 )
-from .base_client import _BaseClient, TOKEN_EXPIRED_MSG, BASE_URI
+from .base_client import _BaseClient, TOKEN_EXPIRED_MSG
 
 
 logger = logging.getLogger(__name__)

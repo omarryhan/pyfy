@@ -1,6 +1,3 @@
-from pyfy import Spotify
-
-
 def test_follow_user(spotify_user_auth, john_smith_user_id):
     assert spotify_user_auth.follow_users(john_smith_user_id) is not None
 

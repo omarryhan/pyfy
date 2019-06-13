@@ -1,4 +1,4 @@
-from pyfy.utils import (
+from pyfy.utils import (  # noqa:  F401
     _is_single_json_type,
     _safe_comma_join_list,
     _build_full_url,

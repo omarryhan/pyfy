@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import pytest
 
 
@@ -23,8 +24,8 @@ def run():
             [
                 "-v",
                 "-s",
-                #'--maxfail=2',
-                #'--fulltrace',
+                # '--maxfail=2',
+                # '--fulltrace',
                 "--cov",
                 "pyfy/",
                 "tests/test_units/",

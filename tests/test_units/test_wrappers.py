@@ -1,12 +1,6 @@
-import json
-
 import pytest
-from requests import Response, Request
 
 from pyfy.wrappers import (
-    _dispatch_request,
-    _inject_user_id,
-    _default_to_locale,
     _set_and_get_me_attr_async,
     _set_and_get_me_attr_sync,
 )

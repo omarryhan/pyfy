@@ -1,8 +1,7 @@
-import os
 import pytest
 import requests
 
-from pyfy import ALL_SCOPES, AuthError, ClientCreds
+from pyfy import AuthError
 
 
 def test_all_scopes_are_valid(spotify_client_auth):
@@ -16,7 +15,7 @@ def test_client_credentials_oauth(spotify_client_auth):
 
 def test_client_credentials_oauth_invalid(spotify_client_auth):
     spotify_client_auth.client_creds.client_id = "BAD_CLIENT_ID"
-    with pytest.raises(AuthError) as e:
+    with pytest.raises(AuthError):
         spotify_client_auth.authorize_client_creds()
 
 

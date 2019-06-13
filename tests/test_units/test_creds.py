@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from pyfy import ClientCreds, UserCreds
+from pyfy import UserCreds
 from pyfy.creds import _Creds
 
 
@@ -62,7 +62,7 @@ def test_creds_json_loads_data_properly(user_creds_from_env):
 
 
 def test_creds_is_not_instantiable():
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError):
         _Creds()
 
 

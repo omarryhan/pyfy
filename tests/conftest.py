@@ -1,4 +1,3 @@
-import pytest
 from pytest import fixture
 
 from pyfy import Spotify, ClientCreds, UserCreds, AsyncSpotify

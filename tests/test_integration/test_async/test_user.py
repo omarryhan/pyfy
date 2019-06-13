@@ -1,4 +1,3 @@
-from pyfy import Spotify
 import pytest
 
 pytestmark = pytest.mark.asyncio

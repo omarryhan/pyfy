@@ -1,23 +1,21 @@
 try:
     import ujson as json
-except:
+except:  # noqa: E722
     import json
 import base64
 import warnings
 import datetime
 from urllib.parse import urlencode
 
-from requests import Request, Response
+from requests import Request
 
 from .creds import (
     ClientCreds,
     UserCreds,
     _set_empty_client_creds_if_none,
-    _set_empty_user_creds_if_none,
 )
 from .excs import ApiError, AuthError
 from .utils import (
-    _safe_getitem,
     _get_key_recursively,
     _build_full_url,
     _safe_comma_join_list,

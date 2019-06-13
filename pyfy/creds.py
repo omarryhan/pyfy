@@ -1,22 +1,19 @@
 import os
 import sys
-import warnings
 
 try:
     import ujson as json
-except:
+except:  # noqa: E722
     import json
 import socket
 import pickle
 import datetime
 from functools import wraps
 
-from .utils import _create_secret
-
 
 try:
     DEFAULT_FILENAME_BASE = socket.gethostname() + "_" + "Spotify_"
-except:
+except:  # noqa: E722
     DEFAULT_FILENAME_BASE = "Spotify_"
 
 ALL_SCOPES = [

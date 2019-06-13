@@ -2,10 +2,7 @@ import pytest
 
 pytestmark = pytest.mark.asyncio
 
-#
-# def test_devices(async_spotify_user_auth, event_loop):
-#    assert event_loop.run_until_complete(async_spotify_user_auth.devices())
-#
+
 async def test_devices(async_spotify_user_auth):
     assert await async_spotify_user_auth.devices()
 

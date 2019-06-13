@@ -3,11 +3,11 @@ import webbrowser
 
 from flask import Flask, redirect, abort, request, jsonify, url_for
 
-from pyfy import Spotify, ClientCreds, UserCreds, AuthError
+from pyfy import Spotify, ClientCreds, AuthError
 
 try:
     from spt_keys import KEYS
-except:
+except:  # noqa: E722
     from spt_keys_template import KEYS
 
 app = Flask(__name__)

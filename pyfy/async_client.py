@@ -1,9 +1,6 @@
-from pprint import pprint, pformat
-import warnings
-
 try:
     import ujson as json
-except:
+except:  # noqa: E722
     import json
 import logging
 import asyncio
@@ -27,7 +24,7 @@ from .wrappers import (
     _default_to_locale,
     _inject_user_id,
 )
-from .base_client import _BaseClient, TOKEN_EXPIRED_MSG, BASE_URI
+from .base_client import _BaseClient, TOKEN_EXPIRED_MSG
 
 
 logger = logging.getLogger(__name__)

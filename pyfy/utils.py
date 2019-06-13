@@ -1,11 +1,10 @@
 import datetime
-import warnings
 import secrets
 from urllib import parse
 
 try:
     import ujson as json
-except:
+except:  # noqa: E722
     import json
 
 

@@ -3,7 +3,7 @@ import pytest
 
 
 def test_sync_client_instantiates_empty():
-    c = Spotify()
+    Spotify()
 
 
 def test_caller_defaults_to_user():

@@ -7,11 +7,11 @@ from sanic import Sanic, response
 from sanic.exceptions import abort
 from sanic.response import json
 
-from pyfy import AsyncSpotify, ClientCreds, UserCreds, AuthError
+from pyfy import AsyncSpotify, ClientCreds, AuthError
 
 try:
     from spt_keys import KEYS
-except:
+except:  # noqa: E722
     from spt_keys_template import KEYS
 
 
