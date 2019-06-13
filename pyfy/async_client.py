@@ -420,9 +420,7 @@ class AsyncSpotify(_BaseClient):
         self._update_user_creds_with(new_creds_obj)
 
     @_set_empty_user_creds_if_none
-    async def build_user_creds(
-        self, grant, set_user_creds=True
-    ):
+    async def build_user_creds(self, grant, set_user_creds=True):
         """
         Second part of OAuth2 authorization code flow, Raises an AuthError if unauthorized
 

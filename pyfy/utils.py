@@ -68,9 +68,7 @@ def _safe_query_string(query):
 
 def _build_full_url(url, query):
     if not isinstance(query, (dict, str)):
-        raise TypeError(
-            "Queries must be an instance of either a dict or string"
-        )
+        raise TypeError("Queries must be an instance of either a dict or string")
     safe_query = _safe_query_string(query)
     if safe_query:
         return url + "?" + parse.urlencode(safe_query)

@@ -27,6 +27,7 @@ aiofiles = "*"
 sanic = "*"
 flask = "*"
 black = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.6"

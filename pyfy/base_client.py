@@ -515,11 +515,11 @@ class _BaseClient:
         data = dict(name=name)
 
         if description is not None:
-            data['description'] = description
+            data["description"] = description
         if public is not None:
-            data['public'] = public
+            data["public"] = public
         if collaborative is not None:
-            data['collaborative'] = collaborative
+            data["collaborative"] = collaborative
 
         return self._create_request(
             method="POST", url=_build_full_url(url, params), json=data
