@@ -968,6 +968,33 @@ class Spotify(_BaseClient):
         return args, kwargs
 
     @_dispatch_request
+    def replace_playlist_tracks(self, *args, **kwargs):
+        """
+        Replace all tracks of a playlist with tracks of your choice
+
+        Arguments:
+
+            playlist_id:
+
+                * Required
+
+            track_ids:
+
+                * track_ids not full URIs
+
+                * Optional
+
+        Returns:
+
+            dict:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
+    @_dispatch_request
     def delete_playlist_tracks(self, *args, **kwargs):
         """
         Delete tracks from a playlist

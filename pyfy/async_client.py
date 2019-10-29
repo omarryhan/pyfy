@@ -1321,6 +1321,41 @@ class AsyncSpotify(_BaseClient):
         return args, kwargs
 
     @_dispatch_request
+    async def replace_playlist_tracks(self, *args, **kwargs):
+        """
+        Replace all tracks of a playlist with tracks of your choice
+
+        Arguments:
+
+            playlist_id:
+
+                * Required
+
+            track_ids:
+
+                * track_ids not full URIs
+
+                * Optional
+
+            to_gather (bool):
+
+                * Whether or not this resource/method will be gathered with ``AsyncSpotify.gather`` or ``AsyncSpotify.gather_now``
+
+                * Optional
+
+                * Default: ``False``
+
+        Returns:
+
+            dict:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
+    @_dispatch_request
     async def delete_playlist_tracks(self, *args, **kwargs):
         """
         Delete tracks from a playlist

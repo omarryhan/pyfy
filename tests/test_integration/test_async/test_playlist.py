@@ -86,15 +86,35 @@ async def test_reorder_playlist_track(
     )
 
 
+async def test_replace_playlist_tracks(
+    async_spotify_user_auth, new_playlist_id, sonne_track_id, them_bones_track_id
+):
+    assert (
+        await async_spotify_user_auth.add_playlist_tracks(
+            new_playlist_id, sonne_track_id
+        )
+        is not None
+    )
+    assert (
+        await async_spotify_user_auth.replace_playlist_tracks(
+            new_playlist_id, track_ids=[them_bones_track_id]
+        )
+        is not None
+    )
+
+
 async def test_delete_playlist_tracks(
     async_spotify_user_auth, new_playlist_id, gods_plan_track_id, them_bones_track_id
 ):
+    await async_spotify_user_auth.replace_playlist_tracks(
+        new_playlist_id, track_ids=[them_bones_track_id, gods_plan_track_id]
+    )
     assert (
         await async_spotify_user_auth.delete_playlist_tracks(
             new_playlist_id,
             [
-                {"id": gods_plan_track_id, "positions": 0},
-                {"id": them_bones_track_id, "positions": 1},
+                {"id": them_bones_track_id, "positions": 0},
+                {"id": gods_plan_track_id, "positions": 1},
             ],
         )
         is not None

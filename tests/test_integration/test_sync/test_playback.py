@@ -8,7 +8,6 @@ def test_recently_played_tracks(spotify_user_auth):
 
 def test_play_album(spotify_user_auth, reise_reise_album_id):
     assert spotify_user_auth.play(album_id=reise_reise_album_id) is not None
-    assert spotify_user_auth.pause() is not None
 
 
 def test_play_single_track(spotify_user_auth, them_bones_track_id):
@@ -43,12 +42,12 @@ def test_currently_playing_info(spotify_user_auth):
     assert spotify_user_auth.currently_playing_info()
 
 
-def test_previous(spotify_user_auth):
-    assert spotify_user_auth.previous() is not None
-
-
 def test_next(spotify_user_auth):
     assert spotify_user_auth.next() is not None
+
+
+def test_previous(spotify_user_auth):
+    assert spotify_user_auth.previous() is not None
 
 
 def test_repeat(spotify_user_auth):
