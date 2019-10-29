@@ -70,9 +70,7 @@ def test_replace_playlist_tracks(
     spotify_user_auth, new_playlist_id, sonne_track_id, them_bones_track_id
 ):
     assert (
-        spotify_user_auth.add_playlist_tracks(
-            new_playlist_id, sonne_track_id
-        )
+        spotify_user_auth.add_playlist_tracks(new_playlist_id, sonne_track_id)
         is not None
     )
     assert (

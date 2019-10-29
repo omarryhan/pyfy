@@ -9,11 +9,7 @@ from urllib.parse import urlencode
 
 from requests import Request
 
-from .creds import (
-    ClientCreds,
-    UserCreds,
-    _set_empty_client_creds_if_none,
-)
+from .creds import ClientCreds, UserCreds, _set_empty_client_creds_if_none
 from .excs import ApiError, AuthError
 from .utils import (
     _get_key_recursively,
@@ -614,23 +610,18 @@ class _BaseClient:
             method="PUT", url=_build_full_url(url, params), json=data
         )
 
-    def _prep_replace_playlist_tracks(
-        self,
-        playlist_id,
-        track_ids=None,
-        **kwargs,
-    ):
+    def _prep_replace_playlist_tracks(self, playlist_id, track_ids=None, **kwargs):
         url = BASE_URI + "/playlists/" + playlist_id + "/tracks"
         params = {}
         data = {}
 
         if track_ids is not None:
             if isinstance(track_ids, str):
-                uris = [f'spotify:track:{track_ids}']
+                uris = [f"spotify:track:{track_ids}"]
             elif isinstance(track_ids, (list, tuple, set)):
-                uris = [f'spotify:track:{track_id}' for track_id in track_ids]
+                uris = [f"spotify:track:{track_id}" for track_id in track_ids]
             else:
-                raise TypeError('Invalid track_ids type')
+                raise TypeError("Invalid track_ids type")
             data["uris"] = uris
 
         return self._create_request(

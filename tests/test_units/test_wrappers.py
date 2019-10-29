@@ -1,9 +1,6 @@
 import pytest
 
-from pyfy.wrappers import (
-    _set_and_get_me_attr_async,
-    _set_and_get_me_attr_sync,
-)
+from pyfy.wrappers import _set_and_get_me_attr_async, _set_and_get_me_attr_sync
 
 from pyfy import Spotify, UserCreds, AsyncSpotify
 
