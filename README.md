@@ -70,7 +70,9 @@ print(res)
 
 ## Setup ⚙️
 
-    $ pip install pyfy
+```bash
+$ pip install pyfy
+```
 
 ## Backward Incompatibility Notices
 
@@ -95,6 +97,7 @@ Big thank you to our amazing contributors:
 - [exofeel](https://github.com/exofeel)
 - [Schiism](https://github.com/Schiism)
 - [kevinhynes](https://github.com/kevinhynes)
+- [haykkh](https://github.com/haykkh)
 
 ## Contact 📧
 
