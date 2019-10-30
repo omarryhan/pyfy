@@ -29,7 +29,6 @@ ALL_SCOPES = [
     "user-read-playback-state",
     "user-read-currently-playing",
     "user-read-private",  # Users
-    "user-read-birthdate",
     "user-read-email",
     "user-library-read",  # Library
     "user-library-modify",
