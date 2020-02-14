@@ -150,7 +150,7 @@ Authentication and Authorization 👩‍🎤
     spt = Spotify(client_creds=client)
     spt.authorize_client_creds()
 
-**3. With Authorization Code Flow (OAuth2)** `examples with Sanic(async) and Flask(sync) <https://github.com/omarryhan/Pyfy/tree/master/examples)>`_
+**3. With Authorization Code Flow (OAuth2)** `examples with Sanic(async) and Flask(sync) <https://github.com/omarryhan/Pyfy/tree/master/examples>`_
 
 .. code-block:: python3
 
