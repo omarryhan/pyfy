@@ -193,8 +193,8 @@ class ClientCreds(_Creds):
         self.redirect_uri = redirect_uri
         self.show_dialog = show_dialog
 
-        self.access_token = None  # For client credentials oauth flow
-        self.expiry = None  # For client credentials oauth flow
+        self.access_token = None  # For user credentials oauth flow
+        self.expiry = None  # For user credentials oauth flow
 
     def load_from_env(self):
         """
