@@ -106,7 +106,7 @@ class _Creds:
         path = os.path.join(path, name)
         with open(path, "w") as outfile:
             out_dict = self.__dict__
-            if getattr(out_dict, 'expiry', None) is not None:
+            if getattr(out_dict, "expiry", None) is not None:
                 del out_dict.expiry
             if "ujson" in sys.modules:
                 json.dump(out_dict, outfile)

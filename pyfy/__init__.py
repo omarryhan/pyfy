@@ -13,5 +13,9 @@ from .__version__ import (  # noqa: F401  imported but unused
 from .sync_client import Spotify  # noqa:  F401  imported but unused
 from .async_client import AsyncSpotify  # noqa:  F401  imported but unused
 from .utils import convert_from_iso_date  # noqa:  F401  imported but unused
-from .creds import ClientCreds, UserCreds, ALL_SCOPES  # noqa:  F401  imported but unused
+from .creds import (
+    ClientCreds,
+    UserCreds,
+    ALL_SCOPES,
+)  # noqa:  F401  imported but unused
 from .excs import ApiError, SpotifyError, AuthError  # noqa:  F401  imported but unused
