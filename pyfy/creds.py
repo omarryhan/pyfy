@@ -105,10 +105,13 @@ class _Creds:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + ".json"
         path = os.path.join(path, name)
         with open(path, "w") as outfile:
+            out_dict = self.__dict__
+            if getattr(out_dict, 'expiry', None) is not None:
+                del out_dict.expiry
             if "ujson" in sys.modules:
-                json.dump(self.__dict__, outfile)
+                json.dump(out_dict, outfile)
             else:
-                json.dump(self.__dict__, outfile, default=str)
+                json.dump(out_dict, outfile, default=str)
 
     def load_from_json(self, path=None, name=None):
         """
