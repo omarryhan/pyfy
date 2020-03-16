@@ -105,9 +105,10 @@ class _Creds:
             name = DEFAULT_FILENAME_BASE + self.__class__.__name__ + ".json"
         path = os.path.join(path, name)
         with open(path, "w") as outfile:
-            out_dict = self.__dict__
-            if getattr(out_dict, "expiry", None) is not None:
-                del out_dict.expiry
+            out_dict = self.__dict__.copy()
+            if 'expiry' in out_dict and out_dict['expiry'] is not None:
+                del out_dict['expiry']
+
             if "ujson" in sys.modules:
                 json.dump(out_dict, outfile)
             else:
