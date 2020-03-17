@@ -632,6 +632,31 @@ class Spotify(_BaseClient):
         """
         return args, kwargs
 
+    @_dispatch_request
+    def queue(self, *args, **kwargs):
+        """
+        Add an item to the end of the user’s current playback queue
+
+        Arguments:
+
+            track_id (str):
+
+                * Required
+
+            device_id:
+
+                * Optional
+
+        Returns:
+
+            dict:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
     ##### Playlists
 
     @_dispatch_request

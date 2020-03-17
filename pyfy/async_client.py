@@ -897,6 +897,39 @@ class AsyncSpotify(_BaseClient):
         """
         return args, kwargs
 
+    @_dispatch_request
+    async def queue(self, *args, **kwargs):
+        """
+        Add an item to the end of the user’s current playback queue
+
+        Arguments:
+
+            track_id (str):
+
+                * Required
+
+            device_id:
+
+                * Optional
+
+            to_gather (bool):
+
+                * Whether or not this resource/method will be gathered with ``AsyncSpotify.gather`` or ``AsyncSpotify.gather_now``
+
+                * Optional
+
+                * Default: ``False``
+
+        Returns:
+
+            dict:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
     ##### Playlists
 
     @_dispatch_request

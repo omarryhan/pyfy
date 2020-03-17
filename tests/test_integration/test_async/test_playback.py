@@ -78,3 +78,7 @@ async def test_volume(async_spotify_user_auth):
 
 async def test_pause(async_spotify_user_auth):
     assert await async_spotify_user_auth.pause() is not None
+
+
+async def test_queue(async_spotify_user_auth, them_bones_track_id):
+    assert await async_spotify_user_auth.queue(them_bones_track_id) is not None
