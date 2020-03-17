@@ -69,3 +69,7 @@ def test_volume(spotify_user_auth):
 
 def test_pause(spotify_user_auth):
     assert spotify_user_auth.pause() is not None
+
+
+def test_queue(spotify_user_auth, them_bones_track_id):
+    assert spotify_user_auth.queue(them_bones_track_id) is not None

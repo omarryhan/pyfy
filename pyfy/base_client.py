@@ -467,6 +467,12 @@ class _BaseClient:
         params = dict(volume_percent=volume_percent, device_id=device_id)
         return self._create_request(method="PUT", url=_build_full_url(url, params))
 
+    def _prep_queue(self, track_id, device_id=None, **kwargs):
+        url = BASE_URI + "/me/player/queue"
+        track_uri = "spotify:track:" + track_id
+        params = dict(uri=track_uri, device_id=device_id)
+        return self._create_request(method="POST", url=_build_full_url(url, params))
+
     ##### Playlists
 
     def _prep_playlist(self, playlist_id, market=None, fields=None, **kwargs):
