@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Pyfy's documentation!
-================================
+Welcome to Pyfy's documentation! 👋
+======================================
 
-Pyfy is an Async + Sync Pythonic Spotify Client that focuses on ease of use and API stability.
+Pyfy is a Sync + Async Pythonic Spotify Client that focuses on ease of use in personal projects and API stability and security for production grade codebases.
 
 Setup 🥁
 =========
@@ -136,413 +136,446 @@ Suitable for when you want to access public information quickly. (Accessing user
 API endpoints 🌐
 ===================
 
-**Albums:**
+Albums
+-----------
 
-- Get an album
+- **Get an album:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/albums/get-album/
 
-- Get an album's tracks
+- **Get an album's tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.album_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/albums/get-albums-tracks/
 
-- Get several albums
+- **Get several albums:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/albums/get-several-albums/
 
-**Artists:**
+Artists
+-------------
 
-- Get an artist
+- **Get an artist:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/artists/get-artist/
 
-- Artist albums
+- **Artist albums:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artist_albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/artists/get-artists-albums/
 
-- Artist top tracks
+- **Artist top tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artist_top_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/artists/get-artists-top-tracks/
 
-- Artist related artists
+- **Artist related artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artist_related_artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/artists/get-related-artists/
 
-- Get several artists
+- **Get several artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/artists/get-several-artists/
 
-**Browse:**
+Browse
+-----------
 
-- Get a category
+- **Get a category:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.category
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-category/
 
-- Get a category's playlists
+- **Get a category's playlists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.category_playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-categorys-playlists/
 
-- Get list of categories
+- **Get list of categories:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.categories
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-list-categories/
 
-- Get a list of featured playlists
+- **Get a list of featured playlists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.featured_playlists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-list-featured-playlists/
 
-- Get a list of new releases
+- **Get a list of new releases:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.new_releases
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-list-new-releases/
 
-- Get recommendations based on seeds
+- **Get recommendations based on seeds:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.recommendations
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/browse/get-recommendations/
 
-**Episodes:**
+Episodes
+-----------
 
-- Get an episode
+- **Get an episode:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/episodes/get-an-episode/
 
-- Get several episodes
+- **Get several episodes:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/episodes/get-several-episodes/ 
 
-**Follow:**
+Follow
+------------
 
-- Check if Current User Follows Artists or Users 
+- **Check if Current User Follows Artists or Users:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follows_users
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/check-current-user-follows/
 
-- Check if Users Follow a Playlist
+- **Check if Users Follow a Playlist:**
+
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follows_playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/check-user-following-playlist/
 
-- Follow Artists
+- **Follow Artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follow_artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/follow-artists-users/
 
-- Follow Users
+- **Follow Users:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follow_artists
   - Web API reference: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follow_users
 
-- Follow a playlist
+- **Follow a playlist:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.follow_playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/follow-playlist/
 
-- Get User's Followed Artists
+- **Get User's Followed Artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.followed_artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/get-followed/
 
-- Unfollow Artists
+- **Unfollow Artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.unfollow_artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/unfollow-artists-users/
 
-- Unfollow Users
+- **Unfollow Users:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.unfollow_users
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/unfollow-artists-users/
 
-- Unfollow Playlist
+- **Unfollow Playlist:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.unfollow_playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/follow/unfollow-playlist/
 
-**User Library:**
+User Library
+----------------
 
-- Check User's Saved Albums
+- **Check User's Saved Albums:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.owns_albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/check-users-saved-albums/
 
-- Check User's Saved Shows
+- **Check User's Saved Shows:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/check-users-saved-shows/
 
-- Check User's Saved Tracks
+- **Check User's Saved Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.owns_tracks
   - Web API reference: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.owns_tracks
 
-- Get Current User's Saved Albums
+- **Get Current User's Saved Albums:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/get-users-saved-albums/
 
-- Get User's Saved Shows
+- **Get User's Saved Shows:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/get-users-saved-shows/
 
-- Get a User's Saved Tracks
+- **Get a User's Saved Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/get-users-saved-tracks/
 
-- Remove Albums for Current User
+- **Remove Albums for Current User:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.delete_albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/remove-albums-user/
 
-- Remove User's Saved Shows 
+- **Remove User's Saved Shows:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/remove-shows-user/
 
-- Remove User's Saved Tracks
+- **Remove User's Saved Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.delete_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/remove-tracks-user/
 
-- Save Albums for Current User
+- **Save Albums for Current User:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.save_albums
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/save-albums-user/
 
-- Save Shows for Current User
+- **Save Shows for Current User:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/save-shows-user/
 
-- Save Tracks for User
+- **Save Tracks for User:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.save_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/library/save-tracks-user/
 
-**Personalization:**
+Personalization
+--------------------
 
-- Get a User's Top Artists
+- **Get a User's Top Artists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_top_artists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/personalization/get-users-top-artists-and-tracks/
 
-- Get a User's Top Tracks
+- **Get a User's Top Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.artist_top_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/personalization/get-users-top-artists-and-tracks/
 
-**Player:**
+Player
+-------------
 
-- Add an Item to the User's Playback Queue
+- **Add an Item to the User's Playback Queue:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.queue
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/add-to-queue/
 
-- Get a User's Available Devices
+- **Get a User's Available Devices:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.devices
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/get-a-users-available-devices/
 
-- Get Information About The User's Current Playback
+- **Get Information About The User's Current Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.currently_playing_info
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/get-information-about-the-users-current-playback/
 
-- Get Current User's Recently Played Tracks
+- **Get Current User's Recently Played Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.recently_played_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/get-recently-played/
 
-- Get the User's Currently Playing Track
+- **Get the User's Currently Playing Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.currently_playing
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/get-the-users-currently-playing-track/
 
-- Pause a User's Playback
+- **Pause a User's Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.pause
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/pause-a-users-playback/
 
-- Seek To Position In Currently Playing Track
+- **Seek To Position In Currently Playing Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.seek
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/seek-to-position-in-currently-playing-track/
 
-- Set Repeat Mode On User’s Playback
+- **Set Repeat Mode On User’s Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.repeat
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/set-repeat-mode-on-users-playback/
 
-- Set Volume For User's Playback
+- **Set Volume For User's Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.volume
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/set-volume-for-users-playback/
 
-- Skip User’s Playback To Next Track
+- **Skip User’s Playback To Next Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.next
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/skip-users-playback-to-next-track/
 
-- Skip User’s Playback To Previous Track
+- **Skip User’s Playback To Previous Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.previous
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/skip-users-playback-to-previous-track/
 
-- Start/Resume a User's Playback
+- **Start/Resume a User's Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.play
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/start-a-users-playback/
 
-- Toggle Shuffle For User’s Playback
+- **Toggle Shuffle For User’s Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.shuffle
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/toggle-shuffle-for-users-playback/
 
-- Transfer a User's Playback
+- **Transfer a User's Playback:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.playback_transfer
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/player/transfer-a-users-playback/
 
-**Playlists:**
-- Add playlist items:
+Playlists
+------------
+
+- **Add playlist items:**
 
   - Docs: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.add_playlist_tracks
   - Web API Reference: https://developer.spotify.com/documentation/web-api/reference/playlists/add-tracks-to-playlist/
 
-- Edit playlist:
+- **Edit playlist:**
 
   - Pyfy: https://developer.spotify.com/documentation/web-api/reference/playlists/change-playlist-details/
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/change-playlist-details/
 
-- Create playlist:
+- **Create playlist:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.create_playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/create-playlist/
 
-- List a user's playlists:
+- **List a user's playlists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_playlists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-a-list-of-current-users-playlists/
 
-- Playlist cover:
+- **Playlist cover:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-playlist-cover/
 
-- List a playlist:
+- **List a playlist:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.playlist
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-playlist/
 
-- List a playlist items:
+- **List a playlist items:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.playlist_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-playlists-tracks/
 
-- Remove playlist items:
+- **Remove playlist items:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.delete_playlist_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/remove-tracks-playlist/
 
-- Reorder playlist items:
+- **Reorder playlist items:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.reorder_playlist_track
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/reorder-playlists-tracks/
 
-- Replace playlist items:
+- **Replace playlist items:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.replace_playlist_tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/replace-playlists-tracks/
 
-- Upload custom playlist cover image:
+- **Upload custom playlist cover image:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/upload-custom-playlist-cover/
 
-- List current user playlists:
+- **List current user playlists:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_playlists
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-a-list-of-current-users-playlists/
 
-**Search:**
+Search
+-----------
 
-- Search for an item
+- **Search for an item:**
 
   - Pyfy: https://developer.spotify.com/documentation/web-api/reference/search/search/
   - Web API reference: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.search
 
-**Shows:**
+Shows
+-----------
 
-- Get a Show
+- **Get a Show:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/shows/get-a-show/
 
-- Get Several Shows
+- **Get Several Shows:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/shows/get-several-shows/
 
-- Get a Show's Episodes
+- **Get a Show's Episodes:**
 
   - Pyfy: **TODO**
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/shows/get-shows-episodes/
 
-**Tracks:**
+Tracks
+-------------
 
-- Get Audio Analysis for a Track
+- **Get Audio Analysis for a Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.track_audio_analysis
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-analysis/
 
-- Get Audio Features for a Track
+- **Get Audio Features for a Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.tracks_audio_features
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/
 
-- Get Audio Features for Several Tracks
+- **Get Audio Features for Several Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.tracks_audio_features
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/tracks/get-several-audio-features/
 
-- Get Several Tracks
+- **Get Several Tracks:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/tracks/get-several-tracks/
 
-- Get a Track
+- **Get a Track:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.tracks
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/tracks/get-track/
 
-**Users Profile:**
+Users Profile
+---------------
 
-- Get Current User's Profile
+- **Get Current User's Profile:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_profile
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/users-profile/get-current-users-profile/
 
-- Get a User's Profile
+- **Get a User's Profile:**
 
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_profile
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/users-profile/get-users-profile/
 
+Pagination 📖
+==================
 
-Sync Client 🎸
-================
+.. code-block:: python3
+
+  from pyfy import Spotify
+
+  user_creds = {'access_token': '...', 'refresh_token': '....'}
+
+  spt = Spotify(user_creds=user_creds)
+
+  user_top_tracks = spt.user_top_tracks(limit=5)
+
+  next_page_1 = spt.next_page(user_top_tracks)
+  next_page_2 = spt.next_page(next_page_1)
+
+  previous_page_1 = spt.previous_page(next_page_2)
+  previous_page_1 === next_page_1  # True
+
+Sync Client API 🎸
+=====================
 
 .. autoclass:: pyfy.sync_client.Spotify
     :members:
@@ -550,8 +583,8 @@ Sync Client 🎸
     :show-inheritance:
     :inherited-members:
 
-Async Client 🎼
-=================
+Async Client API 🎼
+======================
 
 .. autoclass:: pyfy.sync_client.Spotify
     :members:
@@ -559,8 +592,8 @@ Async Client 🎼
     :show-inheritance:
     :inherited-members:
 
-Exceptions ⚠️
-==============
+Exceptions API ⚠️
+===================
 
 .. automodule:: pyfy.excs
     :members:
@@ -568,8 +601,8 @@ Exceptions ⚠️
     :show-inheritance:
     :inherited-members:
 
-Credentials 📇
-===============
+Credentials API 📇
+=====================
 
 .. automodule:: pyfy.creds
     :members:

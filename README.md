@@ -9,9 +9,9 @@
   </p>
 </p>
 
-# Pyfy
+# Welcome 👋
 
-Pyfy is an Async + Sync Pythonic Spotify Client that focuses on ease of use and API stability.
+Pyfy is a Sync + Async Pythonic Spotify Client that focuses on ease of use in personal projects and API stability and security for production grade codebases.
 
 ## Setup ⚙️
 
@@ -19,7 +19,7 @@ Pyfy is an Async + Sync Pythonic Spotify Client that focuses on ease of use and 
 $ pip install pyfy
 ```
 
-## Quick Start
+## Quick Start 🎛️
 
 **Sync:**
 
@@ -48,7 +48,7 @@ async def search():
 search_result = asyncio.run(search())
 ```
 
-## Getting Started
+## Getting Started 👩
 
 You should start by creating client credentials from Spotify's [Developers console](https://developer.spotify.com/dashboard/applications)
 
@@ -68,7 +68,7 @@ e.g. `["user-library-modify", "app-remote-control"]`
 
 Next, follow the first authentication scheme from below (it's the one you'll most likely need, unless you're sure otherwise)
 
-## Authentication schemes
+## Authentication Schemes 👩‍🎤
 
 ### 1. Authorization Code Flow (OAuth2) (recommended)
 
@@ -132,7 +132,7 @@ spt = Spotify(client_creds=client)
 spt.authorize_client_creds()
 ```
 
-## API endpoints:
+## API endpoints 🌐
 
 **Albums:**
 
@@ -463,11 +463,35 @@ spt.authorize_client_creds()
   - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.user_profile
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/users-profile/get-users-profile/
 
+## Pagination 📖
+
+```python 3
+from pyfy import Spotify
+
+user_creds = {'access_token': '...', 'refresh_token': '....'}
+
+spt = Spotify(user_creds=user_creds)
+
+user_top_tracks = spt.user_top_tracks(limit=5)
+
+next_page_1 = spt.next_page(user_top_tracks)
+next_page_2 = spt.next_page(next_page_1)
+
+previous_page_1 = spt.previous_page(next_page_2)
+previous_page_1 === next_page_1  # True
+```
 
 ## Documentation 📑
 
-**Readthedocs:** https://pyfy.readthedocs.io/en/latest
+For a detailed documentation of Pyfy's API, please visit: https://pyfy.readthedocs.io/en/latest where you'll find:
 
+- Sync client API 🎸: https://pyfy.readthedocs.io/en/latest/#sync-client-api
+
+- Async client API 🎼: https://pyfy.readthedocs.io/en/latest/#async-client-api
+
+- Exceptions API ⚠️: https://pyfy.readthedocs.io/en/latest/#module-pyfy.excs
+
+- Credentials API 📇: https://pyfy.readthedocs.io/en/latest/#module-pyfy.creds
 
 ## Backward Incompatibility Notices
 
@@ -484,6 +508,10 @@ spt.authorize_client_creds()
    - Removed state attribute from `user_creds`
 
    - Oauth2 state checking is no longer done by Pyfy's client and should be handled manually
+
+## Testing 👩‍🔬:
+
+Please visit: https://pyfy.readthedocs.io/en/latest/#testing
 
 ## Contributors
 
