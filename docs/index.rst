@@ -70,11 +70,11 @@ Next, follow the first authentication scheme from below (it's the one you'll mos
 Authentication 👩‍🎤
 =====================
 
+**1. Authorization Code Flow (OAuth2) (recommended)**
+
 Suitable if you want to access user-related resources. e.g. user-playlists, user-tracks etc.
 
 `Click here for full working examples with Sanic(async) and Flask(sync) <https://github.com/omarryhan/Pyfy/tree/master/examples>`_.
-
-**1. Authorization Code Flow (OAuth2) (recommended)**
 
 .. code-block:: python3
 
