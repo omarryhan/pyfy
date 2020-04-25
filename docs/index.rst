@@ -157,7 +157,7 @@ Authentication and Authorization 👩‍🎤
     from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
 
     client = ClientCreds(client_id='clientid', client_secret='client_secret')
-    spt = Spotify(client)
+    spt = Spotify(client_creds=client)
 
     def authorize():
         # Fist step of OAuth, Redirect user to spotify's authorization endpoint
