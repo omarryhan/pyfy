@@ -9,26 +9,15 @@
   </p>
 </p>
 
-# Web API Wrapper for Spotify in Python
+# Pyfy
 
-## Features
+Pyfy is an Async + Sync Pythonic Spotify Client that focuses on ease of use and API stability.
 
-- Async and Sync clients
-- Authenticate using:
-  - OAuth2 client credentials flow
-  - OAuth2 authroization code flow
-  - Access token only authorization
-- Covers every parameter for every endpoint in Spotify's Web API
-- Automatically refreshes tokens for clients and users
-- Descriptive errors
-- Able to automatically default to user's locales
-- Rate limiting
-- HTTP and SOCKS proxies
-- HTTP caching (Sync only)
-- Unit and integration tested
-- Fit for both production and experimental/personal environments
-- Begginner friendly interface
-- Almost identical Async and Sync Interfaces
+## Setup ⚙️
+
+```bash
+$ pip install pyfy
+```
 
 ## Quick Start
 
@@ -39,13 +28,10 @@ from pyfy import Spotify
 
 spt = Spotify('your_access_token')
 
-spt.user_playlists()
 spt.play()
 spt.volume(85)
 spt.next()
 spt.pause()
-results = spt.search(q='alice in chains them bones')
-print(results)
 ```
 
 **Async:**
@@ -56,23 +42,81 @@ from pyfy import AsyncSpotify
 
 spt = AsyncSpotify('your_access_token')
 
-async def query():
-    return await spt.search('Like a motherless child')
+async def search():
+    return await spt.search('A tout le monde')
 
-res = asyncio.run(query())
-
-print(res)
+search_result = asyncio.run(search())
 ```
+
+## Authentication 👩‍🎤
+
+Choose one of:
+
+**1. Authorization Code Flow (OAuth2)** (recommended) [examples with Sanic(async) and Flask(sync)](https://github.com/omarryhan/Pyfy/tree/master/examples)
+
+.. code-block:: python3
+
+    from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
+
+    client = ClientCreds(client_id='clientid', client_secret='client_secret')
+    spt = Spotify(client_creds=client)
+
+    def authorize():
+        # Fist step of OAuth, Redirect user to spotify's authorization endpoint
+        if spt.is_oauth_ready:
+            return redirect(spt.auth_uri())
+
+    # Authorization callback
+    def callback(grant):
+        try:
+            user_creds = spt.build_credentials(grant=grant)
+        except AuthError as e:
+            abort(401)
+            logging.info(e.msg)
+            logging.info(e.http_response)
+        else:
+            db.insert(user_creds)
+            return redirect(url_for_home)
+
+    def get_user_tracks():
+        try:
+            return json.dumps(spt.user_tracks())
+        except ApiError:
+            abort(500)
+
+**2. User's Access Token:**  [get from here](https://beta.developer.spotify.com/console/get-current-user/)
+
+Same as OAuth2 but without a refresh token. Suitable for quick runs.
+
+.. code-block:: python3
+
+    from pyfy import Spotify
+
+    spt = Spotify('your access token')
+
+**3. Client Credentials Flow (OAauth2):**  [get from here](https://developer.spotify.com/dashboard/applications)
+
+Suitable for when you want to access public information quickly. (Accessing user information is porhibited using this method)
+
+.. code-block:: python3
+
+    from pyfy import ClientCreds, Spotify
+
+    client = ClientCreds(client_id=client_id, client_secret=client_secret)
+    spt = Spotify(client_creds=client)
+    spt.authorize_client_creds()
+
+## API
+
+**Sync:** https://pyfy.readthedocs.io/en/latest/#sync-client
+**Async:** https://pyfy.readthedocs.io/en/latest/#async-client
+
+**Spotify's:** https://developer.spotify.com/documentation/web-api/reference/
 
 ## Documentation 📑
 
-**Readthedocs:** (https://pyfy.readthedocs.io/en/latest)
+**Readthedocs:** https://pyfy.readthedocs.io/en/latest
 
-## Setup ⚙️
-
-```bash
-$ pip install pyfy
-```
 
 ## Backward Incompatibility Notices
 
@@ -98,6 +142,10 @@ Big thank you to our amazing contributors:
 - [Schiism](https://github.com/Schiism)
 - [kevinhynes](https://github.com/kevinhynes)
 - [haykkh](https://github.com/haykkh)
+- [ykelle](https://github.com/ykelle)
+- [Patrick Arminio](https://github.com/patrick91)
+- [Mustafa](https://github.com/ms7m)
+
 
 ## Contact 📧
 

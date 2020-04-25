@@ -179,7 +179,19 @@ class AsyncSpotify(_BaseClient):
     async def gather(self, *coros, return_exceptions=False, refresh_first=False):
         """ 
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
-        
+
+        Examples:
+
+            ::
+
+                spt = AsyncSpotify('your_access_token')
+                await spt.gather(
+                    spt.search('Saeed', to_gather=True),
+                    spt.search('Killing time', to_gather=True),
+                    spt.search('Project 100', to_gather=True),
+                    spt.search('Tout Petit Moineau', to_gather=True)
+                )
+
         Note:
 
             It is recommended that you leave return_exceptions as False, as setting it to true will return exceptions as str instead of raising them.
@@ -204,6 +216,18 @@ class AsyncSpotify(_BaseClient):
 
         same as ``async def AsyncSpotify.gather`` but can be called synchronously.
         Only works if there's no loop running. Use the ``gather`` method if you have one already running.
+
+        Examples:
+
+            ::
+
+                spt = AsyncSpotify('your_access_token')
+                spt.gather_now(
+                    spt.search('Saeed', to_gather=True),
+                    spt.search('Killing time', to_gather=True),
+                    spt.search('Project 100', to_gather=True),
+                    spt.search('Tout Petit Moineau', to_gather=True)
+                )
 
         Note:
 

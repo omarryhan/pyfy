@@ -43,7 +43,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autodoc",
-    "sphinxcontrib.asyncio",
+    # "sphinxcontrib.asyncio",  # Broken and unmaintained as of 25-April-2020
     "sphinx.ext.napoleon",
 ]
 

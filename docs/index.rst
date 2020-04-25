@@ -6,45 +6,10 @@
 Welcome to Pyfy's documentation!
 ================================
 
-Pyfy is an Async/Sync Pythonic Spotify Client
-
-Features 📯
-============
-
-
-* **Async and Sync clients**
-
-* **Authenticate using:**
-    1. OAuth2 client credentials flow
-    2. OAuth2 authroization code flow
-    3. Access token only authorization
-
-* **Covers every parameter for every endpoint in Spotify's Web API**
-
-* **Automatically refreshes tokens for clients and users**
-
-* **Descriptive errors**
-
-* **Able to automatically default to user's locales**
-
-* **Rate limiting**
-
-* **HTTP and SOCKS proxies**
-
-* **HTTP caching (Sync only)**
-
-* **Unit and integration tested**
-
-* **Fit for both production and experimental/personal environments**
-
-* **Begginner friendly interface**
-
-* **Almost identical Async and Sync Interfaces**
+Pyfy is an Async + Sync Pythonic Spotify Client that focuses on ease of use and API stability.
 
 Setup 🥁
 =========
-
-**Pip**
 
 .. code-block:: bash
 
@@ -61,55 +26,12 @@ Quick Start 🎛️
 
     spt = Spotify('your_access_token')
 
-    spt.user_playlists()
     spt.play()
     spt.volume(85)
     spt.next()
     spt.pause()
-    results = spt.search(q='alice in chains them bones')
-    print(results)
 
 **Async**
-
-*1. Make a single call:*
-
-.. code-block:: python3
-
-    import asyncio
-    from pyfy import AsyncSpotify
-
-    spt = AsyncSpotify('your_access_token')
-
-    async def query():
-        return await spt.search('Like a motherless child')
-
-    asyncio.run(query())
-
-*Or even:*
-
-.. code-block:: python3
-
-    awaited_search_result = asyncio.run(spt.search('A tout le monde'))
-
-*2. Make multiple calls using a single TCP connection (no async/await syntax):*
-
-.. code-block:: python3
-
-    from pprint import pprint
-    from pyfy import AsyncSpotify
-
-    spt = AsyncSpotify('your_access_token')
-
-    gathered_results = spt.gather_now(
-        spt.search('Seize the day', to_gather=True),
-        spt.search('Feel good inc', to_gather=True),
-        spt.search('In your room', to_gather=True),
-        spt.search('Tout Petit Moineau', to_gather=True)
-    )
-
-    pprint(gathered_results)
-
-*3. To manually await the results:*
 
 .. code-block:: python3
 
@@ -119,38 +41,17 @@ Quick Start 🎛️
     spt = AsyncSpotify('your_access_token')
 
     async def search():
-        return await spt.gather(
-            spt.search('Saeed', to_gather=True),
-            spt.search('Killing time', to_gather=True),
-            spt.search('Project 100', to_gather=True),
-            spt.search('Tout Petit Moineau', to_gather=True)
-        )
+        return await spt.search('A tout le monde')
 
-    results = asyncio.run(search())
+    search_result = asyncio.run(search())
 
 
-Authentication and Authorization 👩‍🎤
-=======================================
+Authentication👩‍🎤
+=====================
 
-**1. With User's Access Token:**  `get from here <https://beta.developer.spotify.com/console/get-current-user/>`_
+Choose one of:
 
-.. code-block:: python3
-
-    from pyfy import Spotify
-
-    spt = Spotify('your access token')
-
-**2. With Client Credentials Flow (OAauth2):**  `get from here <https://developer.spotify.com/dashboard/applications>`_
-
-.. code-block:: python3
-
-    from pyfy import ClientCreds, Spotify
-
-    client = ClientCreds(client_id=client_id, client_secret=client_secret)
-    spt = Spotify(client_creds=client)
-    spt.authorize_client_creds()
-
-**3. With Authorization Code Flow (OAuth2)** `examples with Sanic(async) and Flask(sync) <https://github.com/omarryhan/Pyfy/tree/master/examples>`_
+**1. Authorization Code Flow (OAuth2) (recommended)** `examples with Sanic(async) and Flask(sync) <https://github.com/omarryhan/Pyfy/tree/master/examples>`_
 
 .. code-block:: python3
 
@@ -182,25 +83,32 @@ Authentication and Authorization 👩‍🎤
         except ApiError:
             abort(500)
 
-Load User and Client Credentials 👨‍🎤
-======================================
+**2. User's Access Token:** `get from here <https://beta.developer.spotify.com/console/get-current-user/>`_
+
+Same as OAuth2 but without a refresh token. Suitable for quick runs.
 
 .. code-block:: python3
 
-    # Instantiate directly
-    client = ClientCreds(client_id='aclientid', client_secret='averysecrettoken')
+    from pyfy import Spotify
 
-    # Load from environment
-    client = ClientCreds()
-    client.load_from_env()
+    spt = Spotify('your access token')
 
-    # Load from json file
-    client = ClientCreds()
-    client.load_from_json(path='full/dir/path', name='name_of_the_json_file')
+**3. Client Credentials Flow (OAuth2):**  `get from here <https://developer.spotify.com/dashboard/applications>`_
 
-    # From a pickle
-    client = ClientCreds.unpickle()
+Suitable for when you want to access public information quickly. (Accessing user information is porhibited using this method)
 
+.. code-block:: python3
+
+    from pyfy import ClientCreds, Spotify
+
+    client = ClientCreds(client_id=client_id, client_secret=client_secret)
+    spt = Spotify(client_creds=client)
+    spt.authorize_client_creds()
+
+Spotify API Reference 🎶
+==========================
+
+Visit: https://developer.spotify.com/documentation/web-api/reference/
 
 Sync Client 🎸
 ================
@@ -281,7 +189,7 @@ Integration tests
 
 2. Run:
 
-    .. warning::
+    .. note::
 
         * This will run some tests using your client ID, client secret and access token.
         
@@ -297,15 +205,6 @@ Integration tests
 
         $ tox
 
-Contribution
-=============
-
-All contributions are welcome :)
-
-Contributors
-==============
-
-- 
 
 Indices and tables
 ==================
