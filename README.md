@@ -108,6 +108,7 @@ spt.authorize_client_creds()
 ## API
 
 **Sync:** https://pyfy.readthedocs.io/en/latest/#sync-client
+
 **Async:** https://pyfy.readthedocs.io/en/latest/#async-client
 
 **Spotify's:** https://developer.spotify.com/documentation/web-api/reference/
