@@ -50,11 +50,11 @@ search_result = asyncio.run(search())
 
 ## Getting Started
 
-You should start by creating a Spotify client credentials from Spotify's [Developers console](https://developer.spotify.com/dashboard/applications)
+You should start by creating client credentials from Spotify's [Developers console](https://developer.spotify.com/dashboard/applications)
 
-Edit your application's settings and set a Redirect URL. If it's for personal use then set it as:
+Next edit your application's settings and set a Redirect URL. If it's for personal use then set it as:
 
-http://localhost:9000 *Port can be any port of choice, not necessarily 9000*
+  http://localhost:9000 *Port can be any port of choice, not necessarily 9000*
 
 Next, copy your:
 
@@ -62,21 +62,19 @@ Next, copy your:
 2. Client Secret
 3. Redirect URL (That you just set)
 
-Next, figure out the scopes that you think you'll need:
-
-From here: https://developer.spotify.com/documentation/general/guides/scopes/
+Next, figure out the scopes that you think you'll need from here: https://developer.spotify.com/documentation/general/guides/scopes/
 
 e.g. `["user-library-modify", "app-remote-control"]`
 
-Next, follow the first authentication scheme from below because it's the one you'll most likely need.
+Next, follow the first authentication scheme from below (it's the one you'll most likely need, unless you're sure otherwise)
 
 ## Authentication schemes
 
 ### 1. Authorization Code Flow (OAuth2) (recommended)
 
-Suitable if you want to access user-related resources. e.g. user-playlists, user-tracks etc.)
+Suitable if you want to access user-related resources. e.g. user-playlists, user-tracks etc.
 
-[Full working examples with Sanic(async) and Flask(sync)](https://github.com/omarryhan/Pyfy/tree/master/examples)
+[Click here for full working examples with Sanic(async) and Flask(sync)](https://github.com/omarryhan/Pyfy/tree/master/examples)
 
 ```python 3
 from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
