@@ -54,57 +54,56 @@ Choose one of:
 
 **1. Authorization Code Flow (OAuth2)** (recommended) [examples with Sanic(async) and Flask(sync)](https://github.com/omarryhan/Pyfy/tree/master/examples)
 
-.. code-block:: python3
+```python 3
+from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
 
-    from pyfy import Spotify, ClientCreds, UserCreds, AuthError, ApiError
+client = ClientCreds(client_id='clientid', client_secret='client_secret')
+spt = Spotify(client_creds=client)
 
-    client = ClientCreds(client_id='clientid', client_secret='client_secret')
-    spt = Spotify(client_creds=client)
+def authorize():
+    # Fist step of OAuth, Redirect user to spotify's authorization endpoint
+    if spt.is_oauth_ready:
+        return redirect(spt.auth_uri())
 
-    def authorize():
-        # Fist step of OAuth, Redirect user to spotify's authorization endpoint
-        if spt.is_oauth_ready:
-            return redirect(spt.auth_uri())
+# Authorization callback
+def callback(grant):
+    try:
+        user_creds = spt.build_credentials(grant=grant)
+    except AuthError as e:
+        abort(401)
+        logging.info(e.msg)
+        logging.info(e.http_response)
+    else:
+        db.insert(user_creds)
+        return redirect(url_for_home)
 
-    # Authorization callback
-    def callback(grant):
-        try:
-            user_creds = spt.build_credentials(grant=grant)
-        except AuthError as e:
-            abort(401)
-            logging.info(e.msg)
-            logging.info(e.http_response)
-        else:
-            db.insert(user_creds)
-            return redirect(url_for_home)
-
-    def get_user_tracks():
-        try:
-            return json.dumps(spt.user_tracks())
-        except ApiError:
-            abort(500)
+def get_user_tracks():
+    try:
+        return json.dumps(spt.user_tracks())
+    except ApiError:
+        abort(500)
+```
 
 **2. User's Access Token:**  [get from here](https://beta.developer.spotify.com/console/get-current-user/)
 
 Same as OAuth2 but without a refresh token. Suitable for quick runs.
 
-.. code-block:: python3
-
-    from pyfy import Spotify
-
-    spt = Spotify('your access token')
+```python
+from pyfy import Spotify
+spt = Spotify('your access token')
+```
 
 **3. Client Credentials Flow (OAauth2):**  [get from here](https://developer.spotify.com/dashboard/applications)
 
 Suitable for when you want to access public information quickly. (Accessing user information is porhibited using this method)
 
-.. code-block:: python3
+``` python
+from pyfy import ClientCreds, Spotify
 
-    from pyfy import ClientCreds, Spotify
-
-    client = ClientCreds(client_id=client_id, client_secret=client_secret)
-    spt = Spotify(client_creds=client)
-    spt.authorize_client_creds()
+client = ClientCreds(client_id=client_id, client_secret=client_secret)
+spt = Spotify(client_creds=client)
+spt.authorize_client_creds()
+```
 
 ## API
 
