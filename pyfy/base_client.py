@@ -457,7 +457,7 @@ class _BaseClient:
     def _prep_playback_transfer(self, device_ids, **kwargs):
         url = BASE_URI + "/me/player"
         params = {}
-        data = dict(device_ids=_safe_comma_join_list(device_ids))
+        data = dict(device_ids=[_safe_comma_join_list(device_ids)])
         return self._create_request(
             method="PUT", url=_build_full_url(url, params), json=data
         )
