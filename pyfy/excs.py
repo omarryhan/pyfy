@@ -51,7 +51,7 @@ class SpotifyError(Exception):
 
 class ApiError(SpotifyError):
     """ 
-    Almost any HTTP error other that 401 raises this error
+    Almost any HTTP error other than 401 raises this error
     https://developer.spotify.com/documentation/web-api/#response-schema // regular error object 
     
     Attributes:
