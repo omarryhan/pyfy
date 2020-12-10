@@ -1,3 +1,5 @@
+bin
+pyvenv.cfg
 *tox_private.ini
 *.json
 */set_envs.sh

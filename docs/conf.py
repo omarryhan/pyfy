@@ -17,18 +17,18 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../"))
 
+import pyfy  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
-project = "Pyfy"
-copyright = "2018, Omar Ryhan"
-author = "Omar Ryhan"
+project = pyfy.__name__
+copyright = pyfy.__copyright__
+author = pyfy.__author__
 
 # The short X.Y version
-version = ""
+version = pyfy.__version__
 # The full version, including alpha/beta/rc tags
-release = "2.0.6"
-
+release = pyfy.__version__
 
 # -- General configuration ---------------------------------------------------
 

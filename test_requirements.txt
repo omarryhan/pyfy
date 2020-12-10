@@ -3,3 +3,7 @@ pytest-cov
 pytest-mock
 pytest-asyncio
 tox
+sanic
+flask
+black
+flake8
