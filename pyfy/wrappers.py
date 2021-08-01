@@ -1,8 +1,6 @@
 from functools import wraps
 from inspect import iscoroutinefunction
 
-from json.decoder import JSONDecodeError
-
 
 def _set_and_get_me_attr_sync(self, attr_name):
     """ either populates user creds from spotify or just calls self.me and gets (and sets) the attr_name passed """
@@ -142,7 +140,7 @@ def _dispatch_request(*_args, authorized_request=True):
                             return self._send_authorized_request(request).json()
                         else:
                             return self._send_request(request).json()
-                    except JSONDecodeError:
+                    except ValueError:
                         return {}
                 else:
                     return {}
