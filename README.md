@@ -380,7 +380,7 @@ spt.authorize_client_creds()
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-a-list-of-current-users-playlists/
 
 - Playlist cover:
-  - Pyfy: **TODO**
+  - Pyfy: https://pyfy.readthedocs.io/en/latest/#pyfy.sync_client.Spotify.playlist_cover
   - Web API reference: https://developer.spotify.com/documentation/web-api/reference/playlists/get-playlist-cover/
 
 - List a playlist:
