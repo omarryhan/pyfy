@@ -517,6 +517,7 @@ Please visit: https://pyfy.readthedocs.io/en/latest/#testing
 
 Big thank you to our amazing contributors:
 
+- [Stɑrry Shivɑm](https://github.com/starry69)
 - [exofeel](https://github.com/exofeel)
 - [Schiism](https://github.com/Schiism)
 - [kevinhynes](https://github.com/kevinhynes)
