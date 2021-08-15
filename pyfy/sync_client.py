@@ -24,57 +24,57 @@ logger = logging.getLogger(__name__)
 class Spotify(_BaseClient):
     """
     Spotify's Synchronous Client
-    
+
     Arguments:
-        
+
         client_creds (pyfy.creds.ClientCreds): A client credentials model
-        
+
         user_creds (pyfy.creds.UserCreds): A user credentials model
-        
+
         ensure_user_auth (bool):
-        
+
             * Whether or not to fail upon instantiation if user_creds provided where invalid and not refresheable.
-            
+
             * Default: False
-    
-        proxies: 
-        
+
+        proxies:
+
             * socks or http proxies
-            
+
             * http://docs.python-requests.org/en/master/user/advanced/#proxies & http://docs.python-requests.org/en/master/user/advanced/#socks
-        
+
         timeout (int):
-        
+
             * Seconds before request raises a timeout error
 
             * Default: 7
-        
+
         max_retries (int):
-        
+
             * Max retries before a request fails
 
             * Default: 10
-        
+
         backoff_factor (float):
-        
+
             * Factor by which requests delays the next request when encountring a 429 too-many-requests error
 
             * Default: 0.1
-        
+
         default_to_locale (bool):
-        
+
             * Will pass methods decorated with @_default_to_locale the user's locale if available.
 
             * Default: True
-        
-        cache: 
-        
+
+        cache:
+
             * Whether or not to cache HTTP requests for the user
 
             * Default: True
-    
+
         populate_user_creds (bool):
-        
+
             * Sets user_creds info from Spotify to client's user_creds object. e.g. country.
 
             * Default: True
@@ -113,7 +113,7 @@ class Spotify(_BaseClient):
             self.populate_user_creds()
 
     def populate_user_creds(self):
-        """ 
+        """
         Populates self.user_creds with Spotify's info on user.
         Data is fetched from self.me() and set to user recursively
         """
@@ -193,13 +193,13 @@ class Spotify(_BaseClient):
             return res
 
     def authorize_client_creds(self, client_creds=None):
-        """ 
+        """
         Authorize with client credentials oauth flow i.e. Only with client secret and client id.
 
         Call this to send request using client credentials.
-        
-        https://developer.spotify.com/documentation/general/guides/authorization-guide/ 
-        
+
+        https://developer.spotify.com/documentation/general/guides/authorization-guide/
+
         Note:
 
             This will give you limited access to most endpoints
@@ -210,7 +210,7 @@ class Spotify(_BaseClient):
 
         Raises:
 
-            pyfy.excs.AuthErrror: 
+            pyfy.excs.AuthErrror:
         """
         r = self._prep_authorize_client_creds(client_creds)
         try:
@@ -265,7 +265,7 @@ class Spotify(_BaseClient):
         Arguments:
 
             grant (str): Code returned to user after authorizing your application
-            
+
             set_user_creds (bool): Whether or not to set the user created to the client as the current active user
 
         Returns:
@@ -690,6 +690,27 @@ class Spotify(_BaseClient):
         return args, kwargs
 
     @_dispatch_request
+    def playlist_cover(self, *args, **kwargs):
+        """
+        Get a Playlist Cover Image
+
+        Arguments:
+
+            playlist_id:
+
+                * Required
+
+        Returns:
+
+            list:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
+    @_dispatch_request
     def user_playlists(self, *args, **kwargs):
         """
         Lists playlists owned by a user
@@ -765,7 +786,7 @@ class Spotify(_BaseClient):
             public:
 
                 * Optional
-                
+
                 * Default: False
 
             collaborative:
@@ -1023,14 +1044,14 @@ class Spotify(_BaseClient):
     def delete_playlist_tracks(self, *args, **kwargs):
         """
         Delete tracks from a playlist
-        
+
         https://developer.spotify.com/console/delete-playlist-tracks/
 
 
         Examples:
 
             ``track_ids`` types supported: ::
-                
+
                 1) 'track_id'
                 2) ['track_id', 'track_id', 'track_id']
                 3) [
@@ -1701,7 +1722,7 @@ class Spotify(_BaseClient):
         Note:
 
             * You can either provide a response or a url
-            
+
             * Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
 
         Arguments:
@@ -1732,7 +1753,7 @@ class Spotify(_BaseClient):
         Note:
 
             * You can either provide a response or a url
-            
+
             * Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
 
         Arguments:
@@ -1941,7 +1962,7 @@ class Spotify(_BaseClient):
     @_dispatch_request
     @_default_to_locale("market")
     def search(self, *args, **kwargs):
-        """ 
+        """
         Search
 
         Examples:
@@ -1988,7 +2009,7 @@ class Spotify(_BaseClient):
 
     @_dispatch_request
     def track_audio_analysis(self, *args, **kwargs):
-        """ 
+        """
         List audio analysis of a track
 
         Arguments:
@@ -2009,7 +2030,7 @@ class Spotify(_BaseClient):
 
     @_dispatch_request
     def tracks_audio_features(self, *args, **kwargs):
-        """ 
+        """
         List audio features of tracks
 
         Arguments:

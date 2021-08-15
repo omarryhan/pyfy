@@ -27,7 +27,7 @@ OAUTH_AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 
 
 class _BaseClient:
-    """ 
+    """
     Serves both Async and Sync clients
     Implements data parsing, building requests and almost all functionality that does not require any IO
     """
@@ -52,19 +52,19 @@ class _BaseClient:
             client_creds: A client credentials model
 
             user_creds: A user credentials model
-            
+
             ensure_user_auth: Whether or not to fail if user_creds provided where invalid and not refresheable
-            
+
             proxies: socks or http proxies # http://docs.python-requests.org/en/master/user/advanced/#proxies & http://docs.python-requests.org/en/master/user/advanced/#socks
-            
+
             timeout: Seconds before request raises a timeout error
-            
+
             max_retries: Max retries before a request fails
-            
+
             backoff_factor: Factor by which requests delays the next request when encountring a 429 too-many-requests error
-            
+
             default_to_locale: Will pass methods decorated with @_default_to_locale the user's locale if available.
-            
+
             cache: Whether or not to cache HTTP requests for the user
         """
 
@@ -196,7 +196,7 @@ class _BaseClient:
     def is_oauth_ready(self):
         """
         Whether Client Credentials have enough information to perform OAuth2 Authorization Code FLow
-        
+
         Returns
 
             bool:
@@ -480,6 +480,11 @@ class _BaseClient:
         params = dict(market=market, fields=fields)
         return self._create_request(method="GET", url=_build_full_url(url, params))
 
+    def _prep_playlist_cover(self, playlist_id, **kwargs):
+        url = BASE_URI + "/playlists/" + playlist_id + "/images"
+        params = dict()
+        return self._create_request(method="GET", url=_build_full_url(url, params))
+
     def _prep_user_playlists(self, user_id=None, limit=None, offset=None, **kwargs):
         if user_id is None:
             return self._prep__user_playlists(limit=limit, offset=offset)
@@ -635,7 +640,7 @@ class _BaseClient:
         )
 
     def _prep_delete_playlist_tracks(self, playlist_id, track_ids, **kwargs):
-        """ 
+        """
         track_ids types supported:
         1) 'track_id'
         2) ['track_id', 'track_id', 'track_id']

@@ -101,3 +101,6 @@ def test_delete_playlist_tracks(
 
 def test_delete_playlist(spotify_user_auth, new_playlist_id):
     assert spotify_user_auth.delete_playlist(new_playlist_id) is not None
+
+def test_playlist_cover(spotify_user_auth, new_playlist_id):
+    assert spotify_user_auth.playlist_cover(new_playlist_id) is not None
