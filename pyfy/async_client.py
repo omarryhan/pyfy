@@ -36,53 +36,53 @@ class AsyncSpotify(_BaseClient):
     Spotify's Asynchronous Client
 
     Arguments:
-        
+
         client_creds (pyfy.creds.ClientCreds): A client credentials model
-        
+
         user_creds (pyfy.creds.UserCreds): A user credentials model
-        
+
         ensure_user_auth (bool):
-        
+
             * Whether or not to fail upon instantiation if user_creds provided where invalid and not refresheable.
-            
+
             * Default: False
-    
+
         proxies: Aiohttp proxy https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support
-        
+
         proxy_auth: Aiohttp proxy auth https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support
-        
+
         timeout (int):
-        
+
             * Seconds before request raises a timeout error
 
             * Default: 7
-        
+
         max_retries (int):
-        
+
             * Max retries before a request fails
 
             * Default: 10
-        
+
         backoff_factor (float):
-        
+
             * Factor by which requests delays the next request when encountring a 429 too-many-requests error
 
             * Default: 0.1
-        
+
         default_to_locale (bool):
-        
+
             * Will pass methods decorated with @_default_to_locale the user's locale if available.
 
             * Default: True
-        
+
         populate_user_creds (bool):
-        
+
             * Sets user_creds info from Spotify to client's user_creds object. e.g. country.
 
             * Default: True
-        
+
         max_connections (int):
-        
+
             * Max TCP connections per host from the same session
 
             * Default: 1000
@@ -127,7 +127,7 @@ class AsyncSpotify(_BaseClient):
         )
 
     async def populate_user_creds(self):
-        """ 
+        """
         Populates self.user_creds with Spotify's info on user.
         Data is fetched from self.me() and set to user recursively
         """
@@ -138,8 +138,8 @@ class AsyncSpotify(_BaseClient):
     def _create_session(
         self, cache=None, proxies=None, backoff_factor=None, max_retries=None
     ):
-        """ Warning: Creating a client session outside of a coroutine is a very dangerous idea. See:
-        https://github.com/aio-libs/aiohttp/pull/3078/commits/34b3520bc9966ee4ec41b70257960e01d86d5978 """
+        """Warning: Creating a client session outside of a coroutine is a very dangerous idea. See:
+        https://github.com/aio-libs/aiohttp/pull/3078/commits/34b3520bc9966ee4ec41b70257960e01d86d5978"""
         return None
 
     @property
@@ -177,7 +177,7 @@ class AsyncSpotify(_BaseClient):
         return json_responses
 
     async def gather(self, *coros, return_exceptions=False, refresh_first=False):
-        """ 
+        """
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
 
         Examples:
@@ -199,19 +199,19 @@ class AsyncSpotify(_BaseClient):
 
         Arguments:
 
-            refresh_first (bool): 
+            refresh_first (bool):
                 Refresh first to avoid sending all requests at once while token isn't refreshed resulting in resending as many refresh requests.
-            
+
             return_exceptions (bool):
-                passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather  
-                
+                passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather
+
         """
         return await self._gather(
             *coros, return_exceptions=return_exceptions, refresh_first=refresh_first
         )
 
     def gather_now(self, *coros, return_exceptions=False, refresh_first=False):
-        """ 
+        """
         Use this insead of manually gathering individual requests to make all your requests that are to be gathered share one TCP connection
 
         same as ``async def AsyncSpotify.gather`` but can be called synchronously.
@@ -236,12 +236,12 @@ class AsyncSpotify(_BaseClient):
 
         Arguments:
 
-            refresh_first (bool): 
+            refresh_first (bool):
                 Refresh first to avoid sending all requests at once while token isn't refreshed resulting in resending as many refresh requests.
-            
+
             return_exceptions (bool):
-                passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather  
-                
+                passed to `asyncio.gather`: https://docs.python.org/3/library/asyncio-task.html#asyncio.gather
+
         """
 
         try:
@@ -374,13 +374,13 @@ class AsyncSpotify(_BaseClient):
         return list(), dict()
 
     async def authorize_client_creds(self, client_creds=None):
-        """ 
+        """
         Authorize with client credentials oauth flow i.e. Only with client secret and client id.
 
         Call this to send request using client credentials.
-        
-        https://developer.spotify.com/documentation/general/guides/authorization-guide/ 
-        
+
+        https://developer.spotify.com/documentation/general/guides/authorization-guide/
+
         Note:
 
             This will give you limited access to most endpoints
@@ -391,7 +391,7 @@ class AsyncSpotify(_BaseClient):
 
         Raises:
 
-            pyfy.excs.AuthErrror: 
+            pyfy.excs.AuthErrror:
         """
 
         r = self._prep_authorize_client_creds(client_creds)
@@ -448,7 +448,7 @@ class AsyncSpotify(_BaseClient):
         Arguments:
 
             grant (str): Code returned to user after authorizing your application
-            
+
             set_user_creds (bool): Whether or not to set the user created to the client as the current active user
 
         Returns:
@@ -995,6 +995,27 @@ class AsyncSpotify(_BaseClient):
         return args, kwargs
 
     @_dispatch_request
+    async def playlist_cover(self, *args, **kwargs):
+        """
+        Get a Playlist Cover Image
+
+        Arguments:
+
+            playlist_id:
+
+                * Required
+
+        Returns:
+
+            list:
+
+        Raises:
+
+            pyfy.excs.ApiError:
+        """
+        return args, kwargs
+
+    @_dispatch_request
     async def user_playlists(self, *args, **kwargs):
         """
         Lists playlists owned by a user
@@ -1086,7 +1107,7 @@ class AsyncSpotify(_BaseClient):
             public:
 
                 * Optional
-                
+
                 * Default: False
 
             collaborative:
@@ -1416,14 +1437,14 @@ class AsyncSpotify(_BaseClient):
     async def delete_playlist_tracks(self, *args, **kwargs):
         """
         Delete tracks from a playlist
-        
+
         https://developer.spotify.com/console/delete-playlist-tracks/
 
 
         Examples:
 
             ``track_ids`` types supported: ::
-                
+
                 1) 'track_id'
                 2) ['track_id', 'track_id', 'track_id']
                 3) [
@@ -2312,7 +2333,7 @@ class AsyncSpotify(_BaseClient):
         Note:
 
             * You can either provide a response or a url
-            
+
             * Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
 
         Arguments:
@@ -2351,7 +2372,7 @@ class AsyncSpotify(_BaseClient):
         Note:
 
             * You can either provide a response or a url
-            
+
             * Providing a URL will be slightly faster as Pyfy will not have to search for the key in the response dict
 
         Arguments:
@@ -2618,7 +2639,7 @@ class AsyncSpotify(_BaseClient):
     @_dispatch_request
     @_default_to_locale("market")
     async def search(self, *args, **kwargs):
-        """ 
+        """
         Search
 
         Examples:
@@ -2673,7 +2694,7 @@ class AsyncSpotify(_BaseClient):
 
     @_dispatch_request
     async def track_audio_analysis(self, *args, **kwargs):
-        """ 
+        """
         List audio analysis of a track
 
         Arguments:
@@ -2702,7 +2723,7 @@ class AsyncSpotify(_BaseClient):
 
     @_dispatch_request
     async def tracks_audio_features(self, *args, **kwargs):
-        """ 
+        """
         List audio features of tracks
 
         Arguments:
