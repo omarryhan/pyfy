@@ -714,7 +714,7 @@ class _BaseClient:
     def _prep_save_tracks(self, track_ids, **kwargs):
         url = BASE_URI + "/me/tracks"
         params = dict(ids=_safe_comma_join_list(track_ids))
-        return self._create_request(method="GET", url=_build_full_url(url, params))
+        return self._create_request(method="PUT", url=_build_full_url(url, params))
 
     def _prep_delete_tracks(self, track_ids, **kwargs):
         url = BASE_URI + "/me/tracks"
