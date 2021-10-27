@@ -124,5 +124,6 @@ async def test_delete_playlist_tracks(
 async def test_delete_playlist(async_spotify_user_auth, new_playlist_id):
     assert await async_spotify_user_auth.delete_playlist(new_playlist_id) is not None
 
+
 async def test_playlist_cover(async_spotify_user_auth, new_playlist_id):
     assert await async_spotify_user_auth.playlist_cover(new_playlist_id) is not None
